@@ -199,34 +199,29 @@ const getBrandList = async (req, res, next) => {
 const getReviews = async (req, res, next) => {
     const productId = req.params.productId;
     const listReview = await Review.aggregate([
-        { "$match": { productId: productId } },
-        { 
-            $unwind: "$reviews"
-        }
+        { '$match': { productId: productId } },
+        { $unwind: '$reviews' }
     ]).exec();
     
     let query = [];
     query.push(
-        { 
-            $match: { productId: productId } 
-        }, 
-        {
-            $unwind: "$reviews"
-        },
-        {
-            $group: {
-                "_id": "$reviews._id",
-                "customerName": { $first: "$reviews.customerName" },
-                "star": { $first: "$reviews.star" },
-                "comment": { $first: "$reviews.comment" },
-                "images": { $first: "$reviews.images" },
-                "createdAt": { $first: "$reviews.createdAt" },
-            }
-        },
-        {
-            $sort: { createdAt: -1 }
-        }
-    );
+		{ $match: { productId: productId } },
+		{ $unwind: '$reviews' },
+		{
+			$group: {
+				_id: '$reviews._id',
+				userId: { $first: '$reviews.userId' },
+				customerName: { $first: '$reviews.customerName' },
+				star: { $first: '$reviews.star' },
+				comment: { $first: '$reviews.comment' },
+				images: { $first: '$reviews.images' },
+				createdAt: { $first: '$reviews.createdAt' },
+			},
+		},
+		{
+			$sort: { createdAt: -1 },
+		}
+	);
 
     if (req.query.page) {
         const limit = 5;
@@ -248,10 +243,32 @@ const getReviews = async (req, res, next) => {
     });
 };
 
+const getReviewsByUser = async (req, res, next) => {
+    const userId = req.params.userId;
+    const data = await Review.aggregate([
+        { $unwind: '$reviews' },
+        { $match: { 'reviews.userId': userId } },
+        {
+			$group: {
+				_id: '$reviews._id',
+                productId: { $first: '$productId' },
+				userId: { $first: '$reviews.userId' },
+				star: { $first: '$reviews.star' },
+				comment: { $first: '$reviews.comment' },
+				images: { $first: '$reviews.images' },
+				createdAt: { $first: '$reviews.createdAt' },
+			},
+		}
+    ]).exec();
+
+    res.json(data);
+};
+
 const submitReview = async (req, res, next) => {
     const productId = req.params.productId;
 
     const reviewData = {
+        userId: req.body.userId ? req.body.userId : null,
         customerName: req.body.customerName,
         star: req.body.star,
         comment: req.body.comment,
@@ -279,6 +296,11 @@ const submitReview = async (req, res, next) => {
     }
 };
 
+
+const submitUserData = async (req, res, next) => {
+
+};
+
 exports.getFeaturedProducts = getFeaturedProducts;
 exports.getProducts = getProducts;
 exports.getProductDetail = getProductDetail;
@@ -287,3 +309,5 @@ exports.compareProduct = compareProduct;
 exports.getBrandList = getBrandList;
 exports.getReviews = getReviews;
 exports.submitReview = submitReview;
+exports.getReviewsByUser = getReviewsByUser;
+exports.submitUserData = submitUserData;

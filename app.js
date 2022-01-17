@@ -57,8 +57,17 @@ app.get('/getBrandList', mongoPractice.getBrandList);
 // Get product's review
 app.get('/product/:productId/reviews', mongoPractice.getReviews);
 
+// Get user's review
+app.get('/:userId/reviews', mongoPractice.getReviewsByUser);
+
 // Post review
 app.post('/submitReview/:productId', mongoPractice.submitReview);
+
+
+
+// Set user data
+app.post('/submitUserData/:userId', mongoPractice.submitUserData);
+
 
 app.use((req, res, next) => {
 	const error = new Error('Not found');

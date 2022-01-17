@@ -17,6 +17,7 @@ const reviewSchema = mongoose.Schema({
     productId: String,
     reviews: [
         {
+            userId: String,
             customerName: String,
             star: Number,
             comment: String,
@@ -24,6 +25,6 @@ const reviewSchema = mongoose.Schema({
             createdAt: String
         }
     ]
-}, { collection : 'reviews1' });
+}, { collection : 'reviews', versionKey: false });
 
 module.exports = mongoose.model('Review', reviewSchema);
