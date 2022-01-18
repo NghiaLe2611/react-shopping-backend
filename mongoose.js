@@ -4,6 +4,7 @@ const ObjectId = mongoose.Types.ObjectId;
 
 const Product = require('./models/product');
 const Review = require('./models/review');
+const User = require('./models/user');
 
 function escapeRegExp(stringToGoIntoTheRegex) {
     return stringToGoIntoTheRegex.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -258,7 +259,8 @@ const getReviewsByUser = async (req, res, next) => {
 				images: { $first: '$reviews.images' },
 				createdAt: { $first: '$reviews.createdAt' },
 			},
-		}
+		},
+        { $sort: { createdAt: -1 } }
     ]).exec();
 
     res.json(data);
@@ -278,6 +280,7 @@ const submitReview = async (req, res, next) => {
     if (req.body.customerName && req.body.star && req.body.comment) {
         const query = Review.updateOne({ productId: productId }, 
             { $push: { reviews: reviewData }}, { upsert: true }
+            // create new object or update existing object
         );
         query.then(async function(data) {
             return res.json({
@@ -296,9 +299,67 @@ const submitReview = async (req, res, next) => {
     }
 };
 
+const getUserData = async (req, res, next) => {
+    const userId = req.params.userId;
+    const data = await User.findOne({ uuid: userId }).exec();
+    res.json(data);
+};
 
 const submitUserData = async (req, res, next) => {
+    const data = req.body;
+    const userData = new User (
+        {
+            uuid: data.uuid ? data.uuid : null,
+            fullName: data.fullName ? data.fullName : null,
+            displayName: data.displayName ? data.displayName : null,
+            phone: data.phone ? data.phone : null,
+            email: data.email ? data.email : null,
+            birthday: data.birthday ? data.birthday : null,
+            photoURL: data.photoURL ? data.photoURL : null,
+            emailVerified: data.emailVerified ? data.emailVerified : false
+        }
+    );
 
+    if (req.body.uuid) {
+        User.create(userData)
+            .then(async function(data) {
+                console.log(data);
+                return res.json({
+                    message: true
+                });
+            })
+            .catch(function(err) {
+                return res.json(err);
+            });
+    } else {
+        res.json({
+            error: {
+                message: 'Error',
+            },
+        });
+    }
+};
+
+const updateUserData = async (req, res, next) => {
+    const userId = req.params.userId;
+    const data = req.body;
+    let userData = {};
+
+    if (data.fullName) {
+        userData = {...userData, fullName: data.fullName};
+    }
+
+    if (data.displayName) {
+        userData = {...userData, displayName: data.displayName};
+    }
+
+    if (data.phone) {
+        userData = {...userData, phone: data.phone};
+    }
+
+    if (data.birthday) {
+        userData = {...userData, birthday: data.birthday};
+    }
 };
 
 exports.getFeaturedProducts = getFeaturedProducts;
@@ -310,4 +371,6 @@ exports.getBrandList = getBrandList;
 exports.getReviews = getReviews;
 exports.submitReview = submitReview;
 exports.getReviewsByUser = getReviewsByUser;
+exports.getUserData = getUserData;
 exports.submitUserData = submitUserData;
+exports.updateUserData = updateUserData;

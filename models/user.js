@@ -1,9 +1,14 @@
+const mongoose = require('mongoose');
+
 const Review = require('./review');
 const Product = require('./product');
 
 const userSchema = mongoose.Schema(
     {
-		_id: mongoose.Schema.Types.ObjectId,
+		_id: {
+			type: mongoose.Schema.Types.ObjectId,
+			auto: true
+		},
 		uuid: String,
 		fullName: String,
 		displayName: String,

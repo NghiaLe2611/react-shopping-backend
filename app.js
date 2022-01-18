@@ -63,11 +63,14 @@ app.get('/:userId/reviews', mongoPractice.getReviewsByUser);
 // Post review
 app.post('/submitReview/:productId', mongoPractice.submitReview);
 
-
+// Get user data
+app.get('/getUserData/:userId', mongoPractice.getUserData);
 
 // Set user data
-app.post('/submitUserData/:userId', mongoPractice.submitUserData);
+app.post('/submitUserData', mongoPractice.submitUserData);
 
+// Update user data
+app.put('/updateUserData/:userId', mongoPractice.updateUserData);
 
 app.use((req, res, next) => {
 	const error = new Error('Not found');
