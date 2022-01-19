@@ -343,22 +343,40 @@ const submitUserData = async (req, res, next) => {
 const updateUserData = async (req, res, next) => {
     const userId = req.params.userId;
     const data = req.body;
-    let userData = {};
+    let updatedData = {};
 
     if (data.fullName) {
-        userData = {...userData, fullName: data.fullName};
+        updatedData = {...updatedData, fullName: data.fullName};
     }
 
     if (data.displayName) {
-        userData = {...userData, displayName: data.displayName};
+        updatedData = {...updatedData, displayName: data.displayName};
     }
 
     if (data.phone) {
-        userData = {...userData, phone: data.phone};
+        updatedData = {...updatedData, phone: data.phone};
     }
 
     if (data.birthday) {
-        userData = {...userData, birthday: data.birthday};
+        updatedData = {...updatedData, birthday: data.birthday};
+    }
+
+    if (Object.keys(updatedData).length) {
+        const query = User.updateOne({ uuid: userId }, updatedData, { upsert: true });
+        query.then(async function(data) {
+            return res.json({
+                message: true
+            });
+        })
+        .catch(function(err) {
+            return res.json(err);
+        });
+    } else {
+        res.json({
+            error: {
+                message: 'Error',
+            },
+        });
     }
 };
 
