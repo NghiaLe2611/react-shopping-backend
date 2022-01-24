@@ -17,6 +17,14 @@ const userSchema = mongoose.Schema(
 		birthday: Date,
 		photoURL: String,
 		emailVerified: Boolean,
+		listAddress: [{
+			name: String,
+			phone: String,
+			city: String,
+			district: String,
+			ward: String,
+			address: String
+		}],
 		reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
 		favorite: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
 		// reviews: [Review]

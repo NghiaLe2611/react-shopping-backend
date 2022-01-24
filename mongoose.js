@@ -344,22 +344,13 @@ const updateUserData = async (req, res, next) => {
     const userId = req.params.userId;
     const data = req.body;
     let updatedData = {};
-
-    if (data.fullName) {
-        updatedData = {...updatedData, fullName: data.fullName};
-    }
-
-    if (data.displayName) {
-        updatedData = {...updatedData, displayName: data.displayName};
-    }
-
-    if (data.phone) {
-        updatedData = {...updatedData, phone: data.phone};
-    }
-
-    if (data.birthday) {
-        updatedData = {...updatedData, birthday: data.birthday};
-    }
+    
+    updatedData = {...updatedData, fullName: data.fullName ? data.fullName : null};
+    updatedData = {...updatedData, displayName: data.displayName ? data.displayName : null};
+    updatedData = {...updatedData, photoURL: data.photoURL ? data.photoURL : null};
+    updatedData = {...updatedData, phone: data.phone ? data.phone : null};
+    updatedData = {...updatedData, birthday: data.birthday ? data.birthday : null};
+    updatedData = {...updatedData, listAddress: data.listAddress ? data.listAddress : []};
 
     if (Object.keys(updatedData).length) {
         const query = User.updateOne({ uuid: userId }, updatedData, { upsert: true });
