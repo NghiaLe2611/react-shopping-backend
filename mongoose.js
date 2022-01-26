@@ -283,9 +283,8 @@ const submitReview = async(req, res, next) => {
     };
 
     if (req.body.customerName && req.body.star && req.body.comment) {
-        const query = Review.updateOne({ productId: productId }, { $push: { reviews: reviewData } }, { upsert: true }
-            // create new object or update existing object
-        );
+        // create new object or update existing object
+        const query = Review.updateOne({ productId: productId }, { $push: { reviews: reviewData } }, { upsert: true });
         query.then(async function(data) {
                 return res.json({
                     message: true
@@ -346,37 +345,86 @@ const updateUserData = async(req, res, next) => {
     const userId = req.params.userId;
     const data = req.body;
     let updatedData = {};
+    let update = [];
 
-    updatedData = {...updatedData, fullName: data.fullName ? data.fullName : null };
-    updatedData = {...updatedData, displayName: data.displayName ? data.displayName : null };
-    updatedData = {...updatedData, photoURL: data.photoURL ? data.photoURL : null };
-    updatedData = {...updatedData, phone: data.phone ? data.phone : null };
-    updatedData = {...updatedData, birthday: data.birthday ? data.birthday : null };
-    updatedData = {...updatedData, listAddress: data.listAddress ? data.listAddress : [] };
+    const { fullName, displayName, photoURL, phone, birthday, newAddress } = data
+    if (fullName) {
+        updatedData = {...updatedData, fullName: fullName };
+    }
+    if (displayName) {
+        updatedData = {...updatedData, displayName: displayName };
+    }
+    if (photoURL) {
+        updatedData = {...updatedData, photoURL: photoURL };
+    }
+    if (phone) {
+        updatedData = {...updatedData, phone: phone };
+    }
+    if (birthday) {
+        updatedData = {...updatedData, birthday: birthday };
+    }
 
     if (Object.keys(updatedData).length) {
-        const query = User.updateOne({ uuid: userId }, updatedData, { upsert: true });
+        update.push({
+            $set: updatedData
+        });
+    }
+    const info = data.newAddress;
+
+    if (Object.keys(info).length) {
+        update.push({
+            $addToSet: {
+                listAddress: {
+                    name: info.name,
+                    phone: info.phone,
+                    city: info.city,
+                    district: info.district ? info.district : '',
+                    ward: info.ward ? info.ward : '',
+                    address: info.address,
+                    default: info.default
+                }
+            }
+        })
+    }
+
+    console.log(1, info);
+    console.log(2, update.length);
+
+    // updatedData = {...updatedData, fullName: data.fullName ? data.fullName : null };
+    // updatedData = {...updatedData, displayName: data.displayName ? data.displayName : null };
+    // updatedData = {...updatedData, photoURL: data.photoURL ? data.photoURL : null };
+    // updatedData = {...updatedData, phone: data.phone ? data.phone : null };
+    // updatedData = {...updatedData, birthday: data.birthday ? data.birthday : null };
+    // updatedData = {...updatedData, listAddress: data.listAddress ? data.listAddress : [] };
+
+    if (update.length) {
+        const query = User.updateOne({ uuid: userId }, update, { upsert: true });
         query.then(async function(data) {
                 return res.json({
                     message: true
                 });
             })
             .catch(function(err) {
-                return res.json(err);
+                return res.json({
+                    error: {
+                        message: 'Error',
+                    },
+                });;
             });
     } else {
         res.json({
             error: {
                 message: 'Error',
             },
-        });
+        });;
     }
 };
 
 const getCities = async(req, res, next) => {
-    const data = await Province.find({}, { id: 1, name: 1 }).exec();
+    const data = await Province.find({}, { id: 1, name: 1 }).sort({ id: 1 }).exec();
     res.json(data);
 };
+
 
 const getDistricts = async(req, res, next) => {
     const id = req.params.id;
@@ -410,7 +458,7 @@ const getDistricts = async(req, res, next) => {
 const getWards = async(req, res, next) => {
     const cityId = req.query.city;
     const districtId = req.query.district;
-    console.log(cityId, districtId);
+    // console.log(cityId, districtId);
     if (cityId && districtId) {
         const data = await Province.aggregate([{
                 $unwind: '$districts',

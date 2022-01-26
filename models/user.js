@@ -23,7 +23,8 @@ const userSchema = mongoose.Schema(
 			city: String,
 			district: String,
 			ward: String,
-			address: String
+			address: String,
+			default: Boolean
 		}],
 		reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
 		favorite: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
