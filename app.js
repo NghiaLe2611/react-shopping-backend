@@ -80,6 +80,9 @@ app.get('/districts/:id', mongoPractice.getDistricts);
 // Get wards
 app.get('/wards', mongoPractice.getWards);
 
+app.get('/address/:id', mongoPractice.getAddress);
+
+
 app.use((req, res, next) => {
     const error = new Error('Not found');
     error.status = 404;

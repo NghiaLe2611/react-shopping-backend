@@ -20,9 +20,9 @@ const userSchema = mongoose.Schema(
 		listAddress: [{
 			name: String,
 			phone: String,
-			city: String,
-			district: String,
-			ward: String,
+			city: Object,
+			district: Object,
+			ward: Object,
 			address: String,
 			default: Boolean
 		}],

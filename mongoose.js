@@ -5,7 +5,7 @@ const ObjectId = mongoose.Types.ObjectId;
 const Product = require('./models/product');
 const Review = require('./models/review');
 const User = require('./models/user');
-const Province = require('./models/province')
+const Province = require('./models/province');
 
 function escapeRegExp(stringToGoIntoTheRegex) {
     return stringToGoIntoTheRegex.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -26,7 +26,7 @@ const getFeaturedProducts = async(req, res, next) => {
             res.json(err);
         } else {
             res.json({
-                results: data
+                results: data,
             });
         }
     });
@@ -54,16 +54,16 @@ const getProducts = async(req, res, next) => {
     }
 
     if (brand) {
-        query['brand'] = brand.split(",");
+        query['brand'] = brand.split(',');
         console.log(query['brand']);
     }
 
     if (price) {
-        const priceArr = price.split(",");
+        const priceArr = price.split(',');
 
         let prices = [];
 
-        priceArr.forEach(val => {
+        priceArr.forEach((val) => {
             if (val === 'duoi-2-trieu') {
                 prices.push({ price: { $lte: 2000000 } });
             } else if (val === 'tu-2-5-trieu') {
@@ -84,23 +84,23 @@ const getProducts = async(req, res, next) => {
     }
 
     if (battery) {
-        const batteryArr = battery.split(",");
+        const batteryArr = battery.split(',');
 
         let batteries = [];
-        batteryArr.forEach(val => {
+        batteryArr.forEach((val) => {
             let key = 'specs.pin';
 
             if (val === 'duoi-3000-mah') {
                 batteries.push({
-                    [key]: { $lte: 3000 }
+                    [key]: { $lte: 3000 },
                 });
             } else if (val === 'tu-3000-4000-mah') {
                 batteries.push({
-                    [key]: { $gt: 3000, $lte: 4000 }
+                    [key]: { $gt: 3000, $lte: 4000 },
                 });
             } else if (val === 'tren-4000-mah') {
                 batteries.push({
-                    [key]: { $gt: 4000 }
+                    [key]: { $gt: 4000 },
                 });
             }
         });
@@ -113,26 +113,30 @@ const getProducts = async(req, res, next) => {
     switch (sort) {
         case 'priceAscending':
             {
-                Product.find(query).sort({ price: 1 }).exec(function(err, data) {
+                Product.find(query)
+                .sort({ price: 1 })
+                .exec(function(err, data) {
                     if (err) {
                         res.json(err);
                     } else {
                         res.json({
-                            results: data
+                            results: data,
                         });
                     }
                 });
 
-                break;;
+                break;
             }
         case 'priceDescending':
             {
-                Product.find(query).sort({ price: -1 }).exec(function(err, data) {
+                Product.find(query)
+                .sort({ price: -1 })
+                .exec(function(err, data) {
                     if (err) {
                         res.json(err);
                     } else {
                         res.json({
-                            results: data
+                            results: data,
                         });
                     }
                 });
@@ -146,12 +150,11 @@ const getProducts = async(req, res, next) => {
                         res.json(err);
                     } else {
                         res.json({
-                            results: data
+                            results: data,
                         });
                     }
                 });
             }
-
     }
 };
 
@@ -164,19 +167,20 @@ const searchProduct = async(req, res, next) => {
     const limit = category ? 4 : 5;
     query['name'] = { $regex: new RegExp('.*' + escapeRegExp(req.query.name) + '.*', 'i') };
 
-    Product.find(query).limit(limit).exec(function(err, data) {
-        if (err) {
-            res.json(err);
-        } else {
-            res.json({
-                results: data
-            });
-        }
-    });
+    Product.find(query)
+        .limit(limit)
+        .exec(function(err, data) {
+            if (err) {
+                res.json(err);
+            } else {
+                res.json({
+                    results: data,
+                });
+            }
+        });
 };
 
 const getProductDetail = async(req, res, next) => {
-
     const productId = req.params.productId;
 
     if (ObjectId.isValid(productId)) {
@@ -204,15 +208,12 @@ const compareProduct = async(req, res, next) => {
 const getBrandList = async(req, res, next) => {
     const category = req.query.category;
     const brand = await Product.find({ category: category }).distinct('brand');
-    res.json(brand)
+    res.json(brand);
 };
 
 const getReviews = async(req, res, next) => {
     const productId = req.params.productId;
-    const listReview = await Review.aggregate([
-        { '$match': { productId: productId } },
-        { $unwind: '$reviews' }
-    ]).exec();
+    const listReview = await Review.aggregate([{ $match: { productId: productId } }, { $unwind: '$reviews' }]).exec();
 
     let query = [];
     query.push({ $match: { productId: productId } }, { $unwind: '$reviews' }, {
@@ -234,10 +235,10 @@ const getReviews = async(req, res, next) => {
         const page = parseInt(req.query.page, 10) || 1;
         const startIndex = (page - 1) * limit;
         query.push({
-            $skip: startIndex
+            $skip: startIndex,
         });
         query.push({
-            $limit: limit
+            $limit: limit,
         });
     }
 
@@ -245,7 +246,7 @@ const getReviews = async(req, res, next) => {
 
     res.json({
         count: listReview.length,
-        reviews: review
+        reviews: review,
     });
 };
 
@@ -265,7 +266,7 @@ const getReviewsByUser = async(req, res, next) => {
                 createdAt: { $first: '$reviews.createdAt' },
             },
         },
-        { $sort: { createdAt: -1 } }
+        { $sort: { createdAt: -1 } },
     ]).exec();
 
     res.json(data);
@@ -279,15 +280,16 @@ const submitReview = async(req, res, next) => {
         customerName: req.body.customerName,
         star: req.body.star,
         comment: req.body.comment,
-        createdAt: req.body.createdAt ? req.body.createdAt : Date.now()
+        createdAt: req.body.createdAt ? req.body.createdAt : Date.now(),
     };
 
     if (req.body.customerName && req.body.star && req.body.comment) {
         // create new object or update existing object
         const query = Review.updateOne({ productId: productId }, { $push: { reviews: reviewData } }, { upsert: true });
-        query.then(async function(data) {
+        query
+            .then(async function(data) {
                 return res.json({
-                    message: true
+                    message: true,
                 });
             })
             .catch(function(err) {
@@ -318,7 +320,7 @@ const submitUserData = async(req, res, next) => {
         email: data.email ? data.email : null,
         birthday: data.birthday ? data.birthday : null,
         photoURL: data.photoURL ? data.photoURL : null,
-        emailVerified: data.emailVerified ? data.emailVerified : false
+        emailVerified: data.emailVerified ? data.emailVerified : false,
     });
 
     if (req.body.uuid) {
@@ -326,7 +328,7 @@ const submitUserData = async(req, res, next) => {
             .then(async function(data) {
                 console.log(data);
                 return res.json({
-                    message: true
+                    message: true,
                 });
             })
             .catch(function(err) {
@@ -345,9 +347,9 @@ const updateUserData = async(req, res, next) => {
     const userId = req.params.userId;
     const data = req.body;
     let updatedData = {};
-    let update = [];
+    let pipeline = {};
 
-    const { fullName, displayName, photoURL, phone, birthday, newAddress } = data
+    const { fullName, displayName, photoURL, phone, birthday } = data;
     if (fullName) {
         updatedData = {...updatedData, fullName: fullName };
     }
@@ -365,30 +367,23 @@ const updateUserData = async(req, res, next) => {
     }
 
     if (Object.keys(updatedData).length) {
-        update.push({
-            $set: updatedData
-        });
+        pipeline['$set'] = updatedData;
     }
-    const info = data.newAddress;
+    const addressInfo = data.newAddress;
 
-    if (Object.keys(info).length) {
-        update.push({
-            $addToSet: {
-                listAddress: {
-                    name: info.name,
-                    phone: info.phone,
-                    city: info.city,
-                    district: info.district ? info.district : '',
-                    ward: info.ward ? info.ward : '',
-                    address: info.address,
-                    default: info.default
-                }
-            }
-        })
+    if (addressInfo && Object.keys(addressInfo).length) {
+        pipeline['$push'] = {
+            listAddress: {
+                name: addressInfo.name,
+                phone: addressInfo.phone,
+                city: addressInfo.city,
+                district: addressInfo.district ? addressInfo.district : '',
+                ward: addressInfo.ward ? addressInfo.ward : '',
+                address: addressInfo.address,
+                default: addressInfo.default,
+            },
+        };
     }
-
-    console.log(1, info);
-    console.log(2, update.length);
 
     // updatedData = {...updatedData, fullName: data.fullName ? data.fullName : null };
     // updatedData = {...updatedData, displayName: data.displayName ? data.displayName : null };
@@ -397,26 +392,28 @@ const updateUserData = async(req, res, next) => {
     // updatedData = {...updatedData, birthday: data.birthday ? data.birthday : null };
     // updatedData = {...updatedData, listAddress: data.listAddress ? data.listAddress : [] };
 
-    if (update.length) {
-        const query = User.updateOne({ uuid: userId }, update, { upsert: true });
-        query.then(async function(data) {
+    if (Object.keys(pipeline).length) {
+        const query = User.updateOne({ uuid: userId }, pipeline, { upsert: true });
+        query
+            .then(async function() {
                 return res.json({
-                    message: true
+                    message: true,
                 });
             })
             .catch(function(err) {
+                console.log(err);
                 return res.json({
                     error: {
                         message: 'Error',
                     },
-                });;
+                });
             });
     } else {
         res.json({
             error: {
                 message: 'Error',
             },
-        });;
+        });
     }
 };
 
@@ -425,25 +422,26 @@ const getCities = async(req, res, next) => {
     res.json(data);
 };
 
-
 const getDistricts = async(req, res, next) => {
     const id = req.params.id;
     const data = await Province.aggregate([{
-            $unwind: '$districts'
-        }, { $match: { id: parseInt(id) } }, {
+            $unwind: '$districts',
+        },
+        { $match: { id: parseInt(id) } },
+        {
             $group: {
                 _id: null,
                 districts: {
                     $push: {
                         id: '$districts.id',
-                        name: '$districts.name'
-                    }
-                }
-            }
+                        name: '$districts.name',
+                    },
+                },
+            },
         },
         {
-            $project: { _id: 0, districts: 1 }
-        }
+            $project: { _id: 0, districts: 1 },
+        },
     ]).exec();
 
     if (data) {
@@ -465,19 +463,19 @@ const getWards = async(req, res, next) => {
             },
             {
                 $match: {
-                    'id': parseInt(cityId),
-                    'districts.id': parseInt(districtId)
-                }
+                    id: parseInt(cityId),
+                    'districts.id': parseInt(districtId),
+                },
             },
             {
                 $group: {
                     _id: null,
-                    wards: { $first: '$districts.wards' }
+                    wards: { $first: '$districts.wards' },
                 },
             },
             {
-                $project: { _id: 0, wards: 1 }
-            }
+                $project: { _id: 0, wards: 1 },
+            },
         ]).exec();
 
         if (data.length) {
@@ -486,6 +484,18 @@ const getWards = async(req, res, next) => {
             res.json([]);
         }
     }
+};
+
+const getAddress = async(req, res, next) => {
+    const userId = req.params.id;
+
+    const data = await User.aggregate([
+        { $match: { 'uuid': userId } },
+        { $unwind: '$listAddress' },
+        { $match: { 'listAddress.default': false } }
+    ]).exec();
+
+    res.json(data);
 };
 
 exports.getFeaturedProducts = getFeaturedProducts;
@@ -504,3 +514,4 @@ exports.updateUserData = updateUserData;
 exports.getCities = getCities;
 exports.getDistricts = getDistricts;
 exports.getWards = getWards;
+exports.getAddress = getAddress;
