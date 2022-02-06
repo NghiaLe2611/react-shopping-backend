@@ -70,6 +70,7 @@ app.post('/submitUserData', mongoPractice.submitUserData);
 
 // Update user data
 app.put('/updateUserData/:userId', mongoPractice.updateUserData);
+app.put('/updateUserAddress/:userId/:addressId', mongoPractice.updateUserAddress);
 
 // Get province
 app.get('/cities', mongoPractice.getCities);
@@ -79,8 +80,6 @@ app.get('/districts/:id', mongoPractice.getDistricts);
 
 // Get wards
 app.get('/wards', mongoPractice.getWards);
-
-app.get('/address/:id', mongoPractice.getAddress);
 
 
 app.use((req, res, next) => {

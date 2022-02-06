@@ -79,7 +79,6 @@ const getProducts = async(req, res, next) => {
 
         if (prices.length > 0) {
             query['$or'] = prices;
-            console.log(query);
         }
     }
 
@@ -113,9 +112,7 @@ const getProducts = async(req, res, next) => {
     switch (sort) {
         case 'priceAscending':
             {
-                Product.find(query)
-                .sort({ price: 1 })
-                .exec(function(err, data) {
+                Product.find(query).sort({ price: 1 }).exec(function(err, data) {
                     if (err) {
                         res.json(err);
                     } else {
@@ -129,9 +126,7 @@ const getProducts = async(req, res, next) => {
             }
         case 'priceDescending':
             {
-                Product.find(query)
-                .sort({ price: -1 })
-                .exec(function(err, data) {
+                Product.find(query).sort({ price: -1 }).exec(function(err, data) {
                     if (err) {
                         res.json(err);
                     } else {
@@ -167,17 +162,15 @@ const searchProduct = async(req, res, next) => {
     const limit = category ? 4 : 5;
     query['name'] = { $regex: new RegExp('.*' + escapeRegExp(req.query.name) + '.*', 'i') };
 
-    Product.find(query)
-        .limit(limit)
-        .exec(function(err, data) {
-            if (err) {
-                res.json(err);
-            } else {
-                res.json({
-                    results: data,
-                });
-            }
-        });
+    Product.find(query).limit(limit).exec(function(err, data) {
+        if (err) {
+            res.json(err);
+        } else {
+            res.json({
+                results: data,
+            });
+        }
+    });
 };
 
 const getProductDetail = async(req, res, next) => {
@@ -286,15 +279,14 @@ const submitReview = async(req, res, next) => {
     if (req.body.customerName && req.body.star && req.body.comment) {
         // create new object or update existing object
         const query = Review.updateOne({ productId: productId }, { $push: { reviews: reviewData } }, { upsert: true });
-        query
-            .then(async function(data) {
-                return res.json({
-                    message: true,
-                });
-            })
-            .catch(function(err) {
-                return res.json(err);
+        query.then(async function(data) {
+            return res.json({
+                message: true,
             });
+        })
+        .catch(function(err) {
+            return res.json(err);
+        });
     } else {
         res.json({
             error: {
@@ -325,8 +317,7 @@ const submitUserData = async(req, res, next) => {
 
     if (req.body.uuid) {
         User.create(userData)
-            .then(async function(data) {
-                console.log(data);
+            .then(async function() {
                 return res.json({
                     message: true,
                 });
@@ -366,48 +357,42 @@ const updateUserData = async(req, res, next) => {
         updatedData = {...updatedData, birthday: birthday };
     }
 
+    // Profile info
     if (Object.keys(updatedData).length) {
         pipeline['$set'] = updatedData;
     }
-    const addressInfo = data.newAddress;
 
-    if (addressInfo && Object.keys(addressInfo).length) {
+    // New address
+    const newAddress = data.newAddress;
+
+    if (newAddress && Object.keys(newAddress).length) {
         pipeline['$push'] = {
             listAddress: {
-                name: addressInfo.name,
-                phone: addressInfo.phone,
-                city: addressInfo.city,
-                district: addressInfo.district ? addressInfo.district : '',
-                ward: addressInfo.ward ? addressInfo.ward : '',
-                address: addressInfo.address,
-                default: addressInfo.default,
+                name: newAddress.name,
+                phone: newAddress.phone,
+                city: newAddress.city,
+                district: newAddress.district ? newAddress.district : '',
+                ward: newAddress.ward ? newAddress.ward : '',
+                address: newAddress.address,
+                default: newAddress.default,
             },
         };
     }
 
-    // updatedData = {...updatedData, fullName: data.fullName ? data.fullName : null };
-    // updatedData = {...updatedData, displayName: data.displayName ? data.displayName : null };
-    // updatedData = {...updatedData, photoURL: data.photoURL ? data.photoURL : null };
-    // updatedData = {...updatedData, phone: data.phone ? data.phone : null };
-    // updatedData = {...updatedData, birthday: data.birthday ? data.birthday : null };
-    // updatedData = {...updatedData, listAddress: data.listAddress ? data.listAddress : [] };
-
     if (Object.keys(pipeline).length) {
         const query = User.updateOne({ uuid: userId }, pipeline, { upsert: true });
-        query
-            .then(async function() {
-                return res.json({
-                    message: true,
-                });
-            })
-            .catch(function(err) {
-                console.log(err);
-                return res.json({
-                    error: {
-                        message: 'Error',
-                    },
-                });
+        query.then(async function() {
+            return res.json({
+                message: true,
             });
+        })
+        .catch(function(err) {
+            return res.json({
+                error: {
+                    message: 'Error',
+                },
+            });
+        });
     } else {
         res.json({
             error: {
@@ -416,6 +401,104 @@ const updateUserData = async(req, res, next) => {
         });
     }
 };
+
+// Update address
+const updateUserAddress = async(req, res, next) => {
+    const userId = req.params.userId;
+    const addressId = req.params.addressId;
+
+    const updatedAddressData = req.body.updatedAddress;
+
+    let bulkOps = [];
+    let update = { '$set': {} }, 
+        updateForMany = { '$set': {} };
+        arrayFilters = [];
+
+    console.log(updatedAddressData);
+
+    if (updatedAddressData) {
+        Object.keys(updatedAddressData).forEach(function(key) {
+            update['$set']['listAddress.$[element].' + key] = updatedAddressData[key];
+        });
+
+        arrayFilters.push({'element._id': addressId});
+
+        bulkOps.push({
+            'updateOne': {
+                'filter': { uuid: userId },
+                'update': update,
+                'arrayFilters': [{'element._id': mongoose.Types.ObjectId(addressId)}]
+            }
+        });
+
+        if (updatedAddressData.default === true) {
+            Object.keys(updatedAddressData).forEach(function(key) {
+                if (key === 'default') {
+                    updateForMany['$set']['listAddress.$[element].default'] = false;
+                }
+            });
+
+            bulkOps.push({
+                'updateMany': {
+                    'filter': { uuid: userId },
+                    'update': {$set: {'listAddress.$[element].default': false}},
+                    'arrayFilters': [{'element._id': { $ne: mongoose.Types.ObjectId(addressId) }}]
+        
+                    // 'filter': { 'listAddress._id': { $ne: addressId } },
+                    // 'update': updateForMany,
+                    // 'arrayFilters': [ { uuid: userId } ]
+        
+                    // { 'element.default': { default: true } }
+                }
+            });
+        }
+    }
+
+    if (bulkOps.length) {
+        User.bulkWrite(bulkOps).then(result => {
+            return res.json({
+                message: true,
+            });
+        }).catch(err => {
+            return res.json({
+                error: {
+                    message: 'Error',
+                },
+            });
+        });
+    } else {
+        return res.json({
+            error: {
+                message: 'Error',
+            },
+        });
+    }
+
+
+    return;
+
+    /*
+    const query = User.findOneAndUpdate({ uuid: userId }, update, { arrayFilters });
+
+    // const query = User.findOneAndUpdate({uuid: userId},
+	// 	{$set: {'listAddress.$[element]': updatedAddressData}},
+	// 	{arrayFilters: [{'element._id': addressId}]}
+	// );
+
+    query.then(async function(data) {
+        return res.json({
+            message: true,
+        });
+    })
+    .catch(function(err) {
+        return res.json({
+            error: {
+                message: 'Error',
+            },
+        });
+    });
+    */
+}
 
 const getCities = async(req, res, next) => {
     const data = await Province.find({}, { id: 1, name: 1 }).sort({ id: 1 }).exec();
@@ -486,17 +569,6 @@ const getWards = async(req, res, next) => {
     }
 };
 
-const getAddress = async(req, res, next) => {
-    const userId = req.params.id;
-
-    const data = await User.aggregate([
-        { $match: { 'uuid': userId } },
-        { $unwind: '$listAddress' },
-        { $match: { 'listAddress.default': false } }
-    ]).exec();
-
-    res.json(data);
-};
 
 exports.getFeaturedProducts = getFeaturedProducts;
 exports.getProducts = getProducts;
@@ -510,8 +582,14 @@ exports.getReviewsByUser = getReviewsByUser;
 exports.getUserData = getUserData;
 exports.submitUserData = submitUserData;
 exports.updateUserData = updateUserData;
+exports.updateUserAddress = updateUserAddress;
 
 exports.getCities = getCities;
 exports.getDistricts = getDistricts;
 exports.getWards = getWards;
-exports.getAddress = getAddress;
+
+// const data = await User.aggregate([
+//     { $match: { 'uuid': userId } },
+//     { $unwind: '$listAddress' },
+//     { $match: { 'listAddress.default': false } }
+// ]).exec();
