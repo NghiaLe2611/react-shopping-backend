@@ -27,7 +27,7 @@ const userSchema = mongoose.Schema(
 			default: Boolean
 		}],
 		reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
-		favorite: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+		favorite: [],
 		// reviews: [Review]
 	},
 	{ collection: 'users', versionKey: false }

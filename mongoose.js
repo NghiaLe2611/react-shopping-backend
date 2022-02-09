@@ -55,7 +55,7 @@ const getProducts = async(req, res, next) => {
 
     if (brand) {
         query['brand'] = brand.split(',');
-        console.log(query['brand']);
+        // console.log(query['brand']);
     }
 
     if (price) {
@@ -298,8 +298,42 @@ const submitReview = async(req, res, next) => {
 
 const getUserData = async(req, res, next) => {
     const userId = req.params.userId;
-    const data = await User.findOne({ uuid: userId }).exec();
-    res.json(data);
+    // const data = await User.findOne({ uuid: userId }).exec();
+    // res.json(data);
+
+    const data = await User.aggregate([
+		{ $match: { uuid: userId } },
+		{ $unwind: '$listAddress' },
+		{
+			$sort: { 'listAddress.default': -1 }
+		},
+		{
+			$group: {
+				_id: '$_id',
+				detail: { $first: '$$ROOT' },
+				listAddress: { $push: '$listAddress' }
+			},
+		},
+		{
+			$replaceRoot: {
+				newRoot: {
+					$mergeObjects: [
+						'$detail', { listAddress: '$listAddress' }
+					],
+				},
+			},
+		},
+	]).exec();
+
+    if (data) {
+        res.json(data[0]);
+    } else {
+        res.json({
+            error: {
+                message: 'Error',
+            },
+        });
+    }
 };
 
 const submitUserData = async(req, res, next) => {
@@ -414,8 +448,6 @@ const updateUserAddress = async(req, res, next) => {
         updateForMany = { '$set': {} };
         arrayFilters = [];
 
-    console.log(updatedAddressData);
-
     if (updatedAddressData) {
         Object.keys(updatedAddressData).forEach(function(key) {
             update['$set']['listAddress.$[element].' + key] = updatedAddressData[key];
@@ -498,7 +530,60 @@ const updateUserAddress = async(req, res, next) => {
         });
     });
     */
-}
+};
+
+const addToWishlist = async(req, res, next) => {
+    const userId = req.params.userId;
+    const productId = req.params.productId;
+    const product = await Product.findById(productId).exec();
+
+    let pipeline = {};
+
+    if (product) {
+        if (req.body.type === 1) {
+            pipeline['$push'] = {
+                favorite: {
+                   _id: productId,
+                   name: product.name,
+                   price: product.price,
+                   sale: product.sale,
+                   img: product.img
+                },
+            };
+        } else if (req.body.type === 0) {
+            pipeline['$pull'] = {
+                // 'favorite._id': mongoose.Types.ObjectId(productId)
+                'favorite': { _id: productId }
+            };
+        }
+    }
+
+    if (Object.keys(pipeline).length) {
+        const query = User.updateOne({ uuid: userId }, pipeline, { upsert: true });
+        query.then(async function() {
+            const userData = await User.findOne({ uuid: userId }).exec();
+
+            return res.json({
+                message: true,
+                favorite: userData.favorite
+            });
+        })
+        .catch(function(err) {
+            console.log(err);
+            return res.json({
+                error: {
+                    message: 'Error',
+                },
+            });
+        });
+    } else {
+        res.json({
+            error: {
+                message: 'Error',
+            },
+        });
+    }
+};
 
 const getCities = async(req, res, next) => {
     const data = await Province.find({}, { id: 1, name: 1 }).sort({ id: 1 }).exec();
@@ -569,7 +654,6 @@ const getWards = async(req, res, next) => {
     }
 };
 
-
 exports.getFeaturedProducts = getFeaturedProducts;
 exports.getProducts = getProducts;
 exports.getProductDetail = getProductDetail;
@@ -587,6 +671,7 @@ exports.updateUserAddress = updateUserAddress;
 exports.getCities = getCities;
 exports.getDistricts = getDistricts;
 exports.getWards = getWards;
+exports.addToWishlist = addToWishlist;
 
 // const data = await User.aggregate([
 //     { $match: { 'uuid': userId } },

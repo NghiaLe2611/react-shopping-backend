@@ -6,6 +6,7 @@ const mongoPractice = require('./mongoose');
 const Product = require('./models/product');
 const Review = require('./models/review');
 const bodyParser = require('body-parser');
+const cors = require('cors')
 
 // const productsRoute = require('./routes/products');
 
@@ -17,6 +18,9 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
+app.use(cors());
+
+/*
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header(
@@ -31,7 +35,24 @@ app.use((req, res, next) => {
         return res.status(200).json({});
     }
     next();
+
+    // // Website you wish to allow to connect
+    // res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // // Request methods you wish to allow
+    // res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+    // // Request headers you wish to allow
+    // res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+
+    // // Set to true if you need the website to include cookies in the requests sent
+    // // to the API (e.g. in case you use sessions)
+    // res.setHeader('Access-Control-Allow-Credentials', true);
+
+    // // Pass to next layer of middleware
+    // next();
 });
+*/
 
 // app.use('/products', productsRoute);
 
@@ -71,6 +92,7 @@ app.post('/submitUserData', mongoPractice.submitUserData);
 // Update user data
 app.put('/updateUserData/:userId', mongoPractice.updateUserData);
 app.put('/updateUserAddress/:userId/:addressId', mongoPractice.updateUserAddress);
+app.put('/addToWishlist/:userId/:productId', mongoPractice.addToWishlist);
 
 // Get province
 app.get('/cities', mongoPractice.getCities);
