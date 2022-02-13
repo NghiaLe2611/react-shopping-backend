@@ -538,9 +538,9 @@ const addToWishlist = async(req, res, next) => {
     const product = await Product.findById(productId).exec();
 
     let pipeline = {};
-
+    const type = req.body.type;
     if (product) {
-        if (req.body.type === 1) {
+        if (type === 1) {
             pipeline['$push'] = {
                 favorite: {
                    _id: productId,
@@ -550,16 +550,17 @@ const addToWishlist = async(req, res, next) => {
                    img: product.img
                 },
             };
-        } else if (req.body.type === 0) {
+        } else if (type === 0) {
             pipeline['$pull'] = {
-                // 'favorite._id': mongoose.Types.ObjectId(productId)
-                'favorite': { _id: productId }
+                // favorite: { _id: mongoose.Types.ObjectId(productId) }
+                favorite: { _id: productId }
             };
         }
     }
 
     if (Object.keys(pipeline).length) {
-        const query = User.updateOne({ uuid: userId }, pipeline, { upsert: true });
+        const query = User.updateOne({ uuid: userId }, pipeline);
+        // { upsert: type === 1 ? true : false }
         query.then(async function() {
             const userData = await User.findOne({ uuid: userId }).exec();
 
