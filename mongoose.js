@@ -7,6 +7,7 @@ const Review = require('./models/review');
 const User = require('./models/user');
 const Province = require('./models/province');
 
+
 function escapeRegExp(stringToGoIntoTheRegex) {
     return stringToGoIntoTheRegex.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
 }
@@ -207,6 +208,7 @@ const getBrandList = async(req, res, next) => {
 const getReviews = async(req, res, next) => {
     const productId = req.params.productId;
     const listReview = await Review.aggregate([{ $match: { productId: productId } }, { $unwind: '$reviews' }]).exec();
+    const totalStar = listReview.reduce((n, {reviews}) => n + reviews.star, 0);
 
     let query = [];
     query.push({ $match: { productId: productId } }, { $unwind: '$reviews' }, {
@@ -228,18 +230,19 @@ const getReviews = async(req, res, next) => {
         const page = parseInt(req.query.page, 10) || 1;
         const startIndex = (page - 1) * limit;
         query.push({
-            $skip: startIndex,
+            $skip: startIndex
         });
         query.push({
-            $limit: limit,
+            $limit: limit
         });
     }
 
-    const review = await Review.aggregate(query).exec();
+    const reviewsResult = await Review.aggregate(query).exec();
 
     res.json({
         count: listReview.length,
-        reviews: review,
+        averagePoint: parseFloat(totalStar/listReview.length).toFixed(1),
+        reviews: reviewsResult
     });
 };
 
@@ -301,12 +304,30 @@ const getUserData = async(req, res, next) => {
     // const data = await User.findOne({ uuid: userId }).exec();
     // res.json(data);
 
+    // const reviews = await Review.aggregate([
+    //     { $unwind: '$reviews' },
+    //     { $match: { 'reviews.userId': userId } },
+    //     {
+    //         $group: {
+    //             _id: '$reviews._id',
+    //             productId: { $first: '$productId' },
+    //             userId: { $first: '$reviews.userId' },
+    //             star: { $first: '$reviews.star' },
+    //             comment: { $first: '$reviews.comment' },
+    //             images: { $first: '$reviews.images' },
+    //             createdAt: { $first: '$reviews.createdAt' },
+    //         },
+    //     },
+    //     { $sort: { createdAt: -1 } },
+    // ]).exec();
+
     const data = await User.aggregate([
 		{ $match: { uuid: userId } },
 		{ $unwind: '$listAddress' },
 		{
 			$sort: { 'listAddress.default': -1 }
 		},
+        // { $set: { reviews: reviews } },
 		{
 			$group: {
 				_id: '$_id',
@@ -448,6 +469,29 @@ const updateUserAddress = async(req, res, next) => {
         updateForMany = { '$set': {} };
         arrayFilters = [];
 
+    // Remove address
+    if (req.body.removeAddressId) {
+        const query = User.updateOne({ uuid: userId }, {
+            $pull: { listAddress: { _id: addressId } }
+        });
+        query.then(async function() {
+            return res.json({
+                message: true,
+                addressId: addressId
+            });
+        })
+        .catch(function(err) {
+            console.log(err);
+            return res.json({
+                error: {
+                    message: 'Error',
+                },
+            });
+        });
+        
+        return;
+    }
+
     if (updatedAddressData) {
         Object.keys(updatedAddressData).forEach(function(key) {
             update['$set']['listAddress.$[element].' + key] = updatedAddressData[key];
@@ -537,6 +581,9 @@ const addToWishlist = async(req, res, next) => {
     const productId = req.params.productId;
     const product = await Product.findById(productId).exec();
 
+    const listReview = await Review.aggregate([{ $match: { productId: productId } }, { $unwind: '$reviews' }]).exec();
+    const totalStar = listReview.reduce((n, {reviews}) => n + reviews.star, 0);
+
     let pipeline = {};
     const type = req.body.type;
     if (product) {
@@ -545,9 +592,12 @@ const addToWishlist = async(req, res, next) => {
                 favorite: {
                    _id: productId,
                    name: product.name,
+                   category: product.category,
                    price: product.price,
                    sale: product.sale,
-                   img: product.img
+                   img: product.img,
+                   totalReviews: listReview.length,
+                   averagePoint: Number(parseFloat(totalStar/listReview.length).toFixed(1))
                 },
             };
         } else if (type === 0) {
