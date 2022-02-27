@@ -15,6 +15,9 @@ const mongoose = require('mongoose');
 const reviewSchema = mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
     productId: String,
+    product_name: String,
+    product_category: String,
+    thumbnail_url: String,
     reviews: [
         {
             userId: String,

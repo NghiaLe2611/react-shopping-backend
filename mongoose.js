@@ -248,14 +248,18 @@ const getReviews = async(req, res, next) => {
 
 const getReviewsByUser = async(req, res, next) => {
     const userId = req.params.userId;
+
     const data = await Review.aggregate([
         { $unwind: '$reviews' },
         { $match: { 'reviews.userId': userId } },
         {
             $group: {
                 _id: '$reviews._id',
-                productId: { $first: '$productId' },
                 userId: { $first: '$reviews.userId' },
+                productId: { $first: '$productId' },
+                product_name: { $first: '$product_name' },
+                product_category: { $first: '$product_category' },
+                thumbnail_url: { $first: '$thumbnail_url' },
                 star: { $first: '$reviews.star' },
                 comment: { $first: '$reviews.comment' },
                 images: { $first: '$reviews.images' },
@@ -270,6 +274,8 @@ const getReviewsByUser = async(req, res, next) => {
 
 const submitReview = async(req, res, next) => {
     const productId = req.params.productId;
+    const product = await Product.findById(productId).exec();
+    console.log(product);
 
     const reviewData = {
         userId: req.body.userId ? req.body.userId : null,
@@ -281,7 +287,18 @@ const submitReview = async(req, res, next) => {
 
     if (req.body.customerName && req.body.star && req.body.comment) {
         // create new object or update existing object
-        const query = Review.updateOne({ productId: productId }, { $push: { reviews: reviewData } }, { upsert: true });
+        const query = Review.updateOne(
+            { productId: productId },
+            { 
+                $set: { 
+                    'product_name': product.name,
+                    'product_category': product.category,
+                    'thumbnail_url': product.img
+                },
+                $push: { reviews: reviewData }
+            }, 
+            { upsert: true }
+        );
         query.then(async function(data) {
             return res.json({
                 message: true,
