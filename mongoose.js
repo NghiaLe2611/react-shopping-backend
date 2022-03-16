@@ -6,11 +6,23 @@ const Product = require('./models/product');
 const Review = require('./models/review');
 const User = require('./models/user');
 const Province = require('./models/province');
-
+const Order = require('./models/order');
 
 function escapeRegExp(stringToGoIntoTheRegex) {
     return stringToGoIntoTheRegex.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-}
+};
+
+function isEmpty(obj) {
+    const isNullish = Object.values(obj).some(value => {
+        if (value === null || value === undefined) {
+            return true;
+        }
+        
+        return false;
+    });
+
+    return isNullish;
+};
 
 mongoose
     .connect(process.env.DATABASE_URL)
@@ -275,7 +287,6 @@ const getReviewsByUser = async(req, res, next) => {
 const submitReview = async(req, res, next) => {
     const productId = req.params.productId;
     const product = await Product.findById(productId).exec();
-    console.log(product);
 
     const reviewData = {
         userId: req.body.userId ? req.body.userId : null,
@@ -722,6 +733,74 @@ const getWards = async(req, res, next) => {
     }
 };
 
+const submitOrder = async(req, res, next) => {
+    const data = req.body;
+    const orderData = {
+        products: data.products,
+        customerId: data.customerId,
+        customerName: data.customerName,
+        address: data.address,
+        phone: data.phone,
+        orderDate: data.orderDate,
+        shippingFee: data.shippingFee,
+        shippingMethod: data.shippingMethod,
+        paymentMethod: data.paymentMethod,
+        discount: data.discount,
+        totalPrice: data.totalPrice
+    };
+
+    if(isEmpty(orderData)) {
+        return res.json({
+            message: false
+        });
+    } else {
+        const updatedOrderData = {...orderData, status: 1};
+        Order.create(updatedOrderData)
+            .then(async function(result) {
+                return res.json({
+                    message: true,
+                    orderId: result._id.toString()
+                });
+            })
+            .catch(function() {
+                return res.json({
+                    message: false
+                });
+            });
+    }
+};
+
+const getOrders = async(req, res, next) => {
+    const userId = req.headers['x-request-id'].split('_')[1];
+    const status = req.query.status;
+    
+    let query = {};
+    
+    if (status) {
+        query['status'] = status;
+    }
+
+    if (userId) {
+        query['customerId'] = userId;
+        console.log(query);
+        Order.find(query).exec(function(err, data) {
+            if (err) {
+                res.json(err);
+            } else {
+                res.json({
+                    results: data
+                });
+            }
+        });
+    } else {
+        res.json({
+            error: {
+                message: "UserId not found"
+            }
+        });
+    }
+};
+
 exports.getFeaturedProducts = getFeaturedProducts;
 exports.getProducts = getProducts;
 exports.getProductDetail = getProductDetail;
@@ -735,11 +814,12 @@ exports.getUserData = getUserData;
 exports.submitUserData = submitUserData;
 exports.updateUserData = updateUserData;
 exports.updateUserAddress = updateUserAddress;
-
 exports.getCities = getCities;
 exports.getDistricts = getDistricts;
 exports.getWards = getWards;
 exports.addToWishlist = addToWishlist;
+exports.submitOrder = submitOrder;
+exports.getOrders = getOrders;
 
 // const data = await User.aggregate([
 //     { $match: { 'uuid': userId } },

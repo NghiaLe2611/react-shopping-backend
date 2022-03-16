@@ -103,6 +103,11 @@ app.get('/districts/:id', mongoPractice.getDistricts);
 // Get wards
 app.get('/wards', mongoPractice.getWards);
 
+// Post order
+app.post('/submitOrder', mongoPractice.submitOrder);
+
+// Get user's orders
+app.get('/order/getOrders', mongoPractice.getOrders);
 
 app.use((req, res, next) => {
     const error = new Error('Not found');
