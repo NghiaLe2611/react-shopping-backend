@@ -771,7 +771,7 @@ const submitOrder = async(req, res, next) => {
 };
 
 const getOrders = async(req, res, next) => {
-    const userId = req.headers['x-request-id'].split('_')[1];
+    const userId = req.headers['x-request-id']?.split('_')[1];
     const status = req.query.status;
     
     let query = {};
@@ -782,8 +782,7 @@ const getOrders = async(req, res, next) => {
 
     if (userId) {
         query['customerId'] = userId;
-        console.log(query);
-        Order.find(query).exec(function(err, data) {
+        Order.find(query).limit(5).exec(function(err, data) {
             if (err) {
                 res.json(err);
             } else {
@@ -795,7 +794,7 @@ const getOrders = async(req, res, next) => {
     } else {
         res.json({
             error: {
-                message: "UserId not found"
+                message: 'UserId not found'
             }
         });
     }
