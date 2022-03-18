@@ -222,6 +222,12 @@ const getReviews = async(req, res, next) => {
     const listReview = await Review.aggregate([{ $match: { productId: productId } }, { $unwind: '$reviews' }]).exec();
     const totalStar = listReview.reduce((n, {reviews}) => n + reviews.star, 0);
 
+    const amount1Point = listReview.filter(val => val.reviews.star === 1).length;
+    const amount2Point = listReview.filter(val => val.reviews.star === 2).length;
+    const amount3Point = listReview.filter(val => val.reviews.star === 3).length;
+    const amount4Point = listReview.filter(val => val.reviews.star === 4).length;
+    const amount5Point = listReview.filter(val => val.reviews.star === 5).length;
+
     let query = [];
     query.push({ $match: { productId: productId } }, { $unwind: '$reviews' }, {
         $group: {
@@ -238,7 +244,7 @@ const getReviews = async(req, res, next) => {
     });
 
     if (req.query.page) {
-        const limit = 5;
+        const limit = 1;
         const page = parseInt(req.query.page, 10) || 1;
         const startIndex = (page - 1) * limit;
         query.push({
@@ -254,6 +260,13 @@ const getReviews = async(req, res, next) => {
     res.json({
         count: listReview.length,
         averagePoint: parseFloat(totalStar/listReview.length).toFixed(1),
+        pointPercent: [
+            parseFloat(amount5Point/listReview.length * 100).toFixed(0),
+            parseFloat(amount4Point/listReview.length * 100).toFixed(0),
+            parseFloat(amount3Point/listReview.length * 100).toFixed(0),
+            parseFloat(amount2Point/listReview.length * 100).toFixed(0),
+            parseFloat(amount1Point/listReview.length * 100).toFixed(0)
+        ],
         reviews: reviewsResult
     });
 };
@@ -777,7 +790,7 @@ const getOrders = async(req, res, next) => {
     let query = {};
     
     if (status) {
-        query['status'] = status;
+        query['status'] = parseInt(status);
     }
 
     if (userId) {
