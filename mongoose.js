@@ -244,7 +244,7 @@ const getReviews = async(req, res, next) => {
     });
 
     if (req.query.page) {
-        const limit = 1;
+        const limit = 5;
         const page = parseInt(req.query.page, 10) || 1;
         const startIndex = (page - 1) * limit;
         query.push({
@@ -793,13 +793,26 @@ const getOrders = async(req, res, next) => {
         query['status'] = parseInt(status);
     }
 
+    let offset = 0;
+
+    if (req.query.page) {
+        const limit = 5;
+        const page = parseInt(req.query.page, 10) || 1;
+        offset = (page - 1) * limit;
+    }
+
+    // const reviewsResult = await Review.aggregate(query).exec();
+
     if (userId) {
         query['customerId'] = userId;
-        Order.find(query).limit(5).exec(function(err, data) {
+        const orders = await Order.find({ customerId: userId }).exec();
+
+        Order.find(query).skip(offset).limit(5).exec(function(err, data) {
             if (err) {
                 res.json(err);
             } else {
                 res.json({
+                    count: orders.length,
                     results: data
                 });
             }
@@ -808,6 +821,57 @@ const getOrders = async(req, res, next) => {
         res.json({
             error: {
                 message: 'UserId not found'
+            }
+        });
+    }
+};
+
+const searchOrders = async(req, res, next) => {
+    const userId = req.headers['x-request-id']?.split('_')[1];
+    const status = req.query.status;
+    const text = req.query.text;
+
+    console.log(userId, status, text);
+    let query = {};
+
+    if (userId && status && text) {
+        query['customerId'] = ObjectId(userId);
+        query['status'] = parseInt(status);
+
+        const keyword = { $regex: new RegExp('.*' + escapeRegExp(text) + '.*', 'i') };
+
+        if (ObjectId.isValid(text)) {
+            query['_id'] = ObjectId(text);
+            console.log(ObjectId(text));
+
+            console.log(1, query);
+            Order.find(query).exec(function(err, data) {
+                if (err) {
+                    res.json(err);
+                } else {
+                    res.json({
+                        results: data
+                    });
+                }
+            });
+        } else {
+            // query['products.name'] = keyword;
+            query['products'] = {$elemMatch: { name: keyword }};
+            console.log(2, query);
+            Order.find(query).exec(function(err, data) {
+                if (err) {
+                    res.json(err);
+                } else {
+                    res.json({
+                        results: data
+                    });
+                }
+            });
+        }
+    } else {
+        res.json({
+            error: {
+                message: 'Error'
             }
         });
     }
@@ -832,6 +896,7 @@ exports.getWards = getWards;
 exports.addToWishlist = addToWishlist;
 exports.submitOrder = submitOrder;
 exports.getOrders = getOrders;
+exports.searchOrders = searchOrders;
 
 // const data = await User.aggregate([
 //     { $match: { 'uuid': userId } },

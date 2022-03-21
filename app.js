@@ -107,7 +107,11 @@ app.get('/wards', mongoPractice.getWards);
 app.post('/submitOrder', mongoPractice.submitOrder);
 
 // Get user's orders
-app.get('/order/getOrders', mongoPractice.getOrders);
+app.get('/orders', mongoPractice.getOrders);
+
+// Search orders
+app.get('/orders/search', mongoPractice.searchOrders);
+
 
 app.use((req, res, next) => {
     const error = new Error('Not found');
