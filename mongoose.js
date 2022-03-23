@@ -778,9 +778,10 @@ const submitOrder = async(req, res, next) => {
         shippingMethod: data.shippingMethod,
         paymentMethod: data.paymentMethod,
         discount: data.discount,
-        totalPrice: data.totalPrice
+        totalPrice: data.totalPrice,
+        finalPrice: data.finalPrice
     };
-
+    
     if(isEmpty(orderData)) {
         return res.json({
             message: false
@@ -826,7 +827,7 @@ const getOrders = async(req, res, next) => {
         query['customerId'] = userId;
         const orders = await Order.find({ customerId: userId }).exec();
 
-        Order.find(query).skip(offset).limit(5).exec(function(err, data) {
+        Order.find(query).skip(offset).limit(5).sort({ orderDate: -1 }).exec(function(err, data) {
             if (err) {
                 res.json(err);
             } else {
@@ -852,8 +853,6 @@ const searchOrders = async(req, res, next) => {
 
     let query = {};
 
-    console.log(status);
-
     if (status) {
         query['status'] = parseInt(status);
     }
@@ -862,7 +861,6 @@ const searchOrders = async(req, res, next) => {
         query['customerId'] = userId;
 
         const keyword = { $regex: new RegExp('.*' + escapeRegExp(text) + '.*', 'i') };
-
 
         if (ObjectId.isValid(text)) {
             query['_id'] = new ObjectId(text);
@@ -879,7 +877,6 @@ const searchOrders = async(req, res, next) => {
             });
         } else {
             query['products'] = {$elemMatch: { name: keyword }};
-            console.log(2, query);
             Order.find(query).exec(function(err, data) {
                 if (err) {
                     res.json(err);
@@ -888,6 +885,38 @@ const searchOrders = async(req, res, next) => {
                         results: data,
                         count: data.length
                     });
+                }
+            });
+        }
+    } else {
+        res.json({
+            error: {
+                message: 'Authentication failed'
+            }
+        });
+    }
+};
+
+const getOrderDetail = async(req, res, next) => {
+    const userId = req.headers['x-request-id']?.split('_')[1];
+    const orderId = req.params.orderId;
+
+    let query = {};
+
+    if (userId) {
+        if (orderId) {
+            query['_id'] = new ObjectId(orderId);
+            Order.findOne(query).exec(function(err, data) {
+                if (err) {
+                    res.json(err);
+                } else {
+                    res.json(data);
+                }
+            });
+        } else {
+            res.json({
+                error: {
+                    message: 'OrderId not found'
                 }
             });
         }
@@ -920,6 +949,7 @@ exports.addToWishlist = addToWishlist;
 exports.submitOrder = submitOrder;
 exports.getOrders = getOrders;
 exports.searchOrders = searchOrders;
+exports.getOrderDetail = getOrderDetail;
 
 // const data = await User.aggregate([
 //     { $match: { 'uuid': userId } },

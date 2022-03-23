@@ -112,6 +112,8 @@ app.get('/orders', mongoPractice.getOrders);
 // Search orders
 app.get('/orders/search', mongoPractice.searchOrders);
 
+// Get order detail
+app.get('/order/:orderId', mongoPractice.getOrderDetail);
 
 app.use((req, res, next) => {
     const error = new Error('Not found');

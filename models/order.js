@@ -16,7 +16,8 @@ const orderSchema = mongoose.Schema({
     shippingMethod: String,
     paymentMethod: mongoose.Schema.Types.Mixed,
     discount: Number,
-    totalPrice: Number
+    totalPrice: Number,
+    finalPrice: Number
 }, { collection : 'orders', versionKey: false });
 
 module.exports = mongoose.model('Order', orderSchema);
