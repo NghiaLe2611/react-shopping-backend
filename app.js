@@ -7,6 +7,7 @@ const Product = require('./models/product');
 const Review = require('./models/review');
 const bodyParser = require('body-parser');
 const cors = require('cors')
+const middleware = require('./middleware');
 
 // const productsRoute = require('./routes/products');
 
@@ -19,6 +20,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.use(cors());
+
+// app.use(middleware.decodeToken);
 
 /*
 app.use((req, res, next) => {
@@ -107,7 +110,7 @@ app.get('/wards', mongoPractice.getWards);
 app.post('/submitOrder', mongoPractice.submitOrder);
 
 // Get user's orders
-app.get('/orders', mongoPractice.getOrders);
+app.get('/orders', middleware.decodeToken, mongoPractice.getOrders);
 
 // Search orders
 app.get('/orders/search', mongoPractice.searchOrders);

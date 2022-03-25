@@ -804,6 +804,8 @@ const submitOrder = async(req, res, next) => {
 };
 
 const getOrders = async(req, res, next) => {
+    console.log(req);
+
     const userId = req.headers['x-request-id']?.split('_')[1];
     const status = req.query.status;
     
