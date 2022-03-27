@@ -8,6 +8,7 @@ const Review = require('./models/review');
 const bodyParser = require('body-parser');
 const cors = require('cors')
 const middleware = require('./middleware');
+const authMiddleware  = require('./middleware/auth');
 
 // const productsRoute = require('./routes/products');
 
@@ -110,13 +111,22 @@ app.get('/wards', mongoPractice.getWards);
 app.post('/submitOrder', mongoPractice.submitOrder);
 
 // Get user's orders
-app.get('/orders', middleware.decodeToken, mongoPractice.getOrders);
+// app.get('/orders', middleware.decodeToken, mongoPractice.getOrders);
+app.get('/orders', authMiddleware, mongoPractice.getOrders);
 
 // Search orders
 app.get('/orders/search', mongoPractice.searchOrders);
 
 // Get order detail
 app.get('/order/:orderId', mongoPractice.getOrderDetail);
+
+// Test auth
+app.get('/testAuth', authMiddleware, async function(req, res, next) {
+    res.json({
+        message: "OK"
+    })
+});
+
 
 app.use((req, res, next) => {
     const error = new Error('Not found');
