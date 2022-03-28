@@ -1,14 +1,19 @@
 require('dotenv').config();
 
 const express = require('express');
+const cors = require('cors')
 const app = express();
+const cookieParser = require("cookie-parser");
+const csrf = require("csurf");
 const mongoPractice = require('./mongoose');
 const Product = require('./models/product');
 const Review = require('./models/review');
 const bodyParser = require('body-parser');
-const cors = require('cors')
 const middleware = require('./middleware');
 const authMiddleware  = require('./middleware/auth');
+const admin = require('./config/firebase-config');
+
+const csrfMiddleware = csrf({ cookie: true });
 
 // const productsRoute = require('./routes/products');
 
@@ -19,26 +24,26 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // parse application/json
 app.use(bodyParser.json());
-
 app.use(cors());
+app.use(cookieParser());
+// app.use(csrfMiddleware);
 
 // app.use(middleware.decodeToken);
 
-/*
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header(
-        'Access-Control-Allow-Headers',
-        'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-    );
-    if (req.method === 'OPTIONS') {
-        res.header(
-            'Access-Control-Allow-Methods',
-            'PUT, POST, PATCH, DELETE, GET'
-        );
-        return res.status(200).json({});
-    }
-    next();
+// app.use((req, res, next) => {
+    // res.header('Access-Control-Allow-Origin', '*');
+    // res.header(
+    //     'Access-Control-Allow-Headers',
+    //     'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+    // );
+    // if (req.method === 'OPTIONS') {
+    //     res.header(
+    //         'Access-Control-Allow-Methods',
+    //         'PUT, POST, PATCH, DELETE, GET'
+    //     );
+    //     return res.status(200).json({});
+    // }
+    // next();
 
     // // Website you wish to allow to connect
     // res.setHeader('Access-Control-Allow-Origin', '*');
@@ -49,16 +54,46 @@ app.use((req, res, next) => {
     // // Request headers you wish to allow
     // res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
 
-    // // Set to true if you need the website to include cookies in the requests sent
-    // // to the API (e.g. in case you use sessions)
+    // // Set to true if you need the website to include cookies in the requests sent to the API (e.g. in case you use sessions)
     // res.setHeader('Access-Control-Allow-Credentials', true);
 
     // // Pass to next layer of middleware
     // next();
-});
-*/
+// });
+
 
 // app.use('/products', productsRoute);
+
+
+function attachCsrfToken(url, cookie, value) {
+	return function (req, res, next) {
+		if (req.url == url) {
+			res.cookie(cookie, value);
+		}
+		next();
+	};
+}
+
+// Login
+app.post('/sessionLogin', async function(req, res, next) {
+    const token = req.body.token.toString();
+    const expiresIn = 60*60*24*1000; //24h in milliseconds
+
+    admin.auth().createSessionCookie(token, { expiresIn })
+		.then((sessionCookie) => {
+				const options = { maxAge: expiresIn, httpOnly: true };
+				res.cookie('session', sessionCookie, options);
+				res.end(JSON.stringify({ status: 'success' }));
+			},
+			(error) => {
+				res.status(401).send('Unauthorized request!');
+			}
+		);
+}); 
+
+app.get('/sessionLogout', (req, res) => {
+	res.clearCookie('session');
+});
 
 // Get all products
 app.get('/getProducts', mongoPractice.getFeaturedProducts);
@@ -115,10 +150,10 @@ app.post('/submitOrder', mongoPractice.submitOrder);
 app.get('/orders', authMiddleware, mongoPractice.getOrders);
 
 // Search orders
-app.get('/orders/search', mongoPractice.searchOrders);
+app.get('/orders/search', authMiddleware, mongoPractice.searchOrders);
 
 // Get order detail
-app.get('/order/:orderId', mongoPractice.getOrderDetail);
+app.get('/order/:orderId', authMiddleware, mongoPractice.getOrderDetail);
 
 // Test auth
 app.get('/testAuth', authMiddleware, async function(req, res, next) {
@@ -127,11 +162,28 @@ app.get('/testAuth', authMiddleware, async function(req, res, next) {
     })
 });
 
+// app.use((req, res, next) => {
+//     const error = new Error('Not found');
+//     error.status = 404;
+//     next(error);
+// });
 
-app.use((req, res, next) => {
-    const error = new Error('Not found');
-    error.status = 404;
-    next(error);
+app.use(function (req, res, next) {
+
+    // Website you wish to allow to connect
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    res.header(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+    );
+
+    // Set to true if you need the website to include cookies in the requests sent
+    // to the API (e.g. in case you use sessions)
+    res.setHeader('Access-Control-Allow-Credentials', true);
+
+    // Pass to next layer of middleware
+    next();
 });
 
 app.use((error, req, res, next) => {

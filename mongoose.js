@@ -804,9 +804,6 @@ const submitOrder = async(req, res, next) => {
 };
 
 const getOrders = async(req, res, next) => {
-    console.log(req);
-
-    const userId = req.headers['x-request-id']?.split('_')[1];
     const status = req.query.status;
     
     let query = {};
@@ -823,33 +820,39 @@ const getOrders = async(req, res, next) => {
         offset = (page - 1) * limit;
     }
 
-    // const reviewsResult = await Review.aggregate(query).exec();
-
-    if (userId) {
-        query['customerId'] = userId;
-        const orders = await Order.find({ customerId: userId }).exec();
-
-        Order.find(query).skip(offset).limit(5).sort({ orderDate: -1 }).exec(function(err, data) {
-            if (err) {
-                res.json(err);
-            } else {
-                res.json({
-                    count: !status ? orders.length : data.length,
-                    results: data
-                });
-            }
-        });
+    if (req.user) {
+        const userId = req.user.uid;
+        const userExists = await User.findOne({ uuid: userId }).exec();
+        if (userExists) {
+            query['customerId'] = userId;
+            const orders = await Order.find({ customerId: userId }).exec();
+            Order.find(query).skip(offset).limit(5).sort({ orderDate: -1 }).exec(function(err, data) {
+                if (err) {
+                    res.json(err);
+                } else {
+                    res.json({
+                        count: !status ? orders.length : data.length,
+                        results: data
+                    });
+                }
+            });
+        } else {
+            res.json({
+                error: {
+                    message: 'User doesn not exist'
+                }
+            });
+        }
     } else {
         res.json({
             error: {
-                message: 'Authentication failed'
+                message: 'Authorized failed'
             }
         });
     }
 };
 
 const searchOrders = async(req, res, next) => {
-    const userId = req.headers['x-request-id']?.split('_')[1];
     const status = req.query.status;
     const text = req.query.text;
 
@@ -859,62 +862,120 @@ const searchOrders = async(req, res, next) => {
         query['status'] = parseInt(status);
     }
 
-    if (userId) {
-        query['customerId'] = userId;
+    if (req.user) {
+        const userId = req.user.uid;
+        const userExists = await User.findOne({ uuid: userId }).exec();
+        if (userExists) {
+            query['customerId'] = userId;
 
-        const keyword = { $regex: new RegExp('.*' + escapeRegExp(text) + '.*', 'i') };
-
-        if (ObjectId.isValid(text)) {
-            query['_id'] = new ObjectId(text);
-
-            Order.find(query).exec(function(err, data) {
-                if (err) {
-                    res.json(err);
-                } else {
-                    res.json({
-                        results: data,
-                        count: data.length
-                    });
-                }
-            });
+            const keyword = { $regex: new RegExp('.*' + escapeRegExp(text) + '.*', 'i') };
+    
+            if (ObjectId.isValid(text)) {
+                query['_id'] = new ObjectId(text);
+    
+                Order.find(query).exec(function(err, data) {
+                    if (err) {
+                        res.json(err);
+                    } else {
+                        res.json({
+                            results: data,
+                            count: data.length
+                        });
+                    }
+                });
+            } else {
+                query['products'] = {$elemMatch: { name: keyword }};
+                Order.find(query).exec(function(err, data) {
+                    if (err) {
+                        res.json(err);
+                    } else {
+                        res.json({
+                            results: data,
+                            count: data.length
+                        });
+                    }
+                });
+            }
         } else {
-            query['products'] = {$elemMatch: { name: keyword }};
-            Order.find(query).exec(function(err, data) {
-                if (err) {
-                    res.json(err);
-                } else {
-                    res.json({
-                        results: data,
-                        count: data.length
-                    });
+            res.json({
+                error: {
+                    message: 'User doesn not exist'
                 }
             });
         }
     } else {
         res.json({
             error: {
-                message: 'Authentication failed'
+                message: 'Authorized failed'
             }
         });
     }
+
+    // if (userId) {
+    //     query['customerId'] = userId;
+
+    //     const keyword = { $regex: new RegExp('.*' + escapeRegExp(text) + '.*', 'i') };
+
+    //     if (ObjectId.isValid(text)) {
+    //         query['_id'] = new ObjectId(text);
+
+    //         Order.find(query).exec(function(err, data) {
+    //             if (err) {
+    //                 res.json(err);
+    //             } else {
+    //                 res.json({
+    //                     results: data,
+    //                     count: data.length
+    //                 });
+    //             }
+    //         });
+    //     } else {
+    //         query['products'] = {$elemMatch: { name: keyword }};
+    //         Order.find(query).exec(function(err, data) {
+    //             if (err) {
+    //                 res.json(err);
+    //             } else {
+    //                 res.json({
+    //                     results: data,
+    //                     count: data.length
+    //                 });
+    //             }
+    //         });
+    //     }
+    // } else {
+    //     res.json({
+    //         error: {
+    //             message: 'Authentication failed'
+    //         }
+    //     });
+    // }
 };
 
 const getOrderDetail = async(req, res, next) => {
-    const userId = req.headers['x-request-id']?.split('_')[1];
     const orderId = req.params.orderId;
 
     let query = {};
 
-    if (userId) {
+    if (req.user) {
         if (orderId) {
-            query['_id'] = new ObjectId(orderId);
-            Order.findOne(query).exec(function(err, data) {
-                if (err) {
-                    res.json(err);
-                } else {
-                    res.json(data);
-                }
-            });
+            const userId = req.user.uid;
+            const userExists = await User.findOne({ uuid: userId }).exec();
+            if (userExists) {
+                query['_id'] = new ObjectId(orderId);
+                Order.findOne(query).exec(function(err, data) {
+                    if (err) {
+                        res.json(err);
+                    } else {
+                        res.json(data);
+                    }
+                });
+            } else {
+                res.json({
+                    error: {
+                        message: 'User doesn not exist'
+                    }
+                });
+            }
         } else {
             res.json({
                 error: {
@@ -925,7 +986,7 @@ const getOrderDetail = async(req, res, next) => {
     } else {
         res.json({
             error: {
-                message: 'Authentication failed'
+                message: 'Authorized failed'
             }
         });
     }
