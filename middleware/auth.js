@@ -5,18 +5,19 @@ async function authMiddleware(req, res, next) {
     if ((!headerToken || headerToken.split(' ')[0] !== 'Bearer') && !(req.cookies && req.cookies.csrfToken)) {
         // && !(req.cookies && req.cookies._session)
         return res.status(401).json({
+            code: 401,
             message: 'Unauthorized'
         });
     }
 
     let token;
-    console.log(req.cookies);
     if (headerToken && headerToken.split(' ')[0] === 'Bearer') {
         token = headerToken.split(' ')[1];
     } else if (req.cookies && req.cookies.csrfToken) {
         token = req.cookies.csrfToken ? req.cookies.csrfToken : '';
     } else {
         return res.status(401).json({
+            code: 401,
             message: 'Unauthorized'
         });
     }
@@ -28,6 +29,7 @@ async function authMiddleware(req, res, next) {
         // return;
     } catch (error) {
         return res.status(401).json({
+            code: 401,
             message: 'Unauthorized'
         });
     }
