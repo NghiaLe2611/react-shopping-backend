@@ -26,6 +26,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cors());
 app.use(cookieParser());
+
 // app.use(csrfMiddleware);
 
 // app.use(middleware.decodeToken);

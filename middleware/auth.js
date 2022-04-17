@@ -20,7 +20,7 @@ async function authMiddleware(req, res, next) {
             code: 401,
             message: 'Unauthorized'
         });
-    }
+    }    
 
     try {
         const decodedIdToken = await firebase.auth().verifyIdToken(token);
@@ -30,14 +30,14 @@ async function authMiddleware(req, res, next) {
     } catch (error) {
         return res.status(401).json({
             code: 401,
-            message: 'Unauthorized'
+            message: 'Unauthorized`'
         });
     }
-
 
 	// firebase.auth().verifyIdToken(token)
 	// 	.then(() => next())
 	// 	.catch(() => res.send({message: 'Could not authorize'}).status(403));
 }
+
 
 module.exports = authMiddleware;
