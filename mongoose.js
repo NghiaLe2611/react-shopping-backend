@@ -7,7 +7,6 @@ const Review = require('./models/review');
 const User = require('./models/user');
 const Province = require('./models/province');
 const Order = require('./models/order');
-const recentlyProducts = require('./models/recentlyProducts');
 
 function escapeRegExp(stringToGoIntoTheRegex) {
     return stringToGoIntoTheRegex.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -495,6 +494,13 @@ const updateUserData = async(req, res, next) => {
         };
     }
 
+    // Recently viewed products
+    if (data.recentlyProduct) {
+        pipeline['$push'] = {
+            recentlyViewedProducts: data.recentlyProduct
+        }
+    }
+
     if (Object.keys(pipeline).length) {
         const query = User.updateOne({ uuid: userId }, pipeline, { upsert: true });
         query.then(async function() {
@@ -767,29 +773,37 @@ const getWards = async(req, res, next) => {
 };
 
 const submitOrder = async(req, res, next) => {
-    const data = req.body;
-    const orderData = {
-        products: data.products,
-        customerId: data.customerId,
-        customerName: data.customerName,
-        address: data.address,
-        phone: data.phone,
-        orderDate: data.orderDate,
-        shippingFee: data.shippingFee,
-        shippingMethod: data.shippingMethod,
-        paymentMethod: data.paymentMethod,
-        discount: data.discount,
-        totalPrice: data.totalPrice,
-        finalPrice: data.finalPrice
-    };
+    // const data = req.body;
+    // const orderData = {
+    //     products: data.products,
+    //     customerId: data.customerId,
+    //     customerName: data.customerName,
+    //     address: data.address,
+    //     phone: data.phone,
+    //     orderDate: data.orderDate,
+    //     shippingFee: data.shippingFee,
+    //     shippingMethod: data.shippingMethod,
+    //     paymentMethod: data.paymentMethod,
+    //     discount: data.discount,
+    //     totalPrice: data.totalPrice,
+    //     finalPrice: data.finalPrice
+    // };
+
+    const { products, customerId, customerName, address, phone, orderDate, 
+        shippingFee, shippingMethod, paymentMethod, discount, totalPrice, finalPrice } = req.body;
+
+    const orderData = await new Order({
+        products, customerId, customerName, address, phone, orderDate, 
+        shippingFee, shippingMethod, paymentMethod, discount, totalPrice, finalPrice, status: 1
+    });
     
     if(isEmpty(orderData)) {
         return res.json({
             message: false
         });
     } else {
-        const updatedOrderData = {...orderData, status: 1};
-        Order.create(updatedOrderData)
+        // const updatedOrderData = {...orderData, status: 1};
+        Order.create(orderData)
             .then(async function(result) {
                 return res.json({
                     message: true,
@@ -1001,26 +1015,31 @@ const addRecentlyProduct = async(req, res, next) =>{
     const userId = req.body?.id;
     // console.log(111, req.user);
     const userExisted = await User.findOne({uuid: userId}).exec();
-    let arr = [];
+
     if (userExisted) {
         if (req.body?.product) {
-            arr.push(req.body.product);
-            const data = {
-                userId,
-                products: arr
-            }
-            recentlyProducts.create(data)
-                .then(async function() {
-                    return res.json({
-                        message: true
-                    });
-                })
-                .catch(function(err) {
-                    return res.json(err);
-                });
+            if (userRecentlyExisted) {
+                res.json('OK');
             } else {
-            return res.status(404).json('Data can not be empty');
-        }
+                res.json('Error');
+            }
+
+			// const data = {
+			// 	userId,
+			// 	products: [req.body.product],
+			// };
+			// recentlyProducts.create(data)
+            //     .then(async function () {
+            //         return res.json({
+            //             message: true,
+            //         });
+            //     })
+            //     .catch(function (err) {
+            //         return res.json(err);
+            //     });
+		} else {
+			return res.status(404).json('Data can not be empty');
+		}
     } else {
         return res.status(404).json('User is not exist');
     }

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
-const Review = require('./review');
-const Product = require('./product');
+// const Review = require('./review');
+// const Product = require('./product');
 
 const userSchema = mongoose.Schema(
     {
@@ -27,6 +27,10 @@ const userSchema = mongoose.Schema(
 			default: Boolean
 		}],
 		favorite: [],
+        recentlyViewedProducts: [{
+            type: Object,
+            ref: 'Product'
+        }]
 		// reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }]
 		// reviews: [Review]
 	},
