@@ -7,6 +7,7 @@ const Review = require('./models/review');
 const User = require('./models/user');
 const Province = require('./models/province');
 const Order = require('./models/order');
+const recentlyProducts = require('./models/recentlyProducts');
 
 function escapeRegExp(stringToGoIntoTheRegex) {
     return stringToGoIntoTheRegex.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -992,6 +993,39 @@ const getOrderDetail = async(req, res, next) => {
     }
 };
 
+const getRecentlyProducts = async(req, res, next) =>{
+
+};
+
+const addRecentlyProduct = async(req, res, next) =>{
+    const userId = req.body?.id;
+    // console.log(111, req.user);
+    const userExisted = await User.findOne({uuid: userId}).exec();
+    let arr = [];
+    if (userExisted) {
+        if (req.body?.product) {
+            arr.push(req.body.product);
+            const data = {
+                userId,
+                products: arr
+            }
+            recentlyProducts.create(data)
+                .then(async function() {
+                    return res.json({
+                        message: true
+                    });
+                })
+                .catch(function(err) {
+                    return res.json(err);
+                });
+            } else {
+            return res.status(404).json('Data can not be empty');
+        }
+    } else {
+        return res.status(404).json('User is not exist');
+    }
+};
+
 exports.getFeaturedProducts = getFeaturedProducts;
 exports.getProducts = getProducts;
 exports.getProductDetail = getProductDetail;
@@ -1013,6 +1047,9 @@ exports.submitOrder = submitOrder;
 exports.getOrders = getOrders;
 exports.searchOrders = searchOrders;
 exports.getOrderDetail = getOrderDetail;
+
+exports.addRecentlyProduct = addRecentlyProduct;
+exports.getRecentlyProducts = getRecentlyProducts;
 
 // const data = await User.aggregate([
 //     { $match: { 'uuid': userId } },

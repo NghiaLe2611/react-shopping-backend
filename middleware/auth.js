@@ -1,13 +1,17 @@
 const firebase = require('../config/firebase-config');
 
+function errorResponse(res) {
+    return res.status(401).json({
+        success: false,
+        message: 'Unauthorized'
+    });
+}
+
 async function authMiddleware(req, res, next) {
 	const headerToken = req.headers.authorization;
     if ((!headerToken || headerToken.split(' ')[0] !== 'Bearer') && !(req.cookies && req.cookies.csrfToken)) {
         // && !(req.cookies && req.cookies._session)
-        return res.status(401).json({
-            code: 401,
-            message: 'Unauthorized'
-        });
+        return errorResponse(res);
     }
 
     let token;
@@ -16,10 +20,7 @@ async function authMiddleware(req, res, next) {
     } else if (req.cookies && req.cookies.csrfToken) {
         token = req.cookies.csrfToken ? req.cookies.csrfToken : '';
     } else {
-        return res.status(401).json({
-            code: 401,
-            message: 'Unauthorized'
-        });
+        return errorResponse(res);
     }    
 
     try {
@@ -28,10 +29,7 @@ async function authMiddleware(req, res, next) {
         next();
         // return;
     } catch (error) {
-        return res.status(401).json({
-            code: 401,
-            message: 'Unauthorized`'
-        });
+        return errorResponse(res);
     }
 
 	// firebase.auth().verifyIdToken(token)

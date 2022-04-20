@@ -1,19 +1,15 @@
-require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors')
 const app = express();
 const cookieParser = require("cookie-parser");
-const csrf = require("csurf");
+const csrf = require('csurf');
 const mongoPractice = require('./mongoose');
-const Product = require('./models/product');
-const Review = require('./models/review');
 const bodyParser = require('body-parser');
-const middleware = require('./middleware');
 const authMiddleware  = require('./middleware/auth');
 const admin = require('./config/firebase-config');
 
 const csrfMiddleware = csrf({ cookie: true });
+require('dotenv').config();
 
 // const productsRoute = require('./routes/products');
 
@@ -156,12 +152,12 @@ app.get('/orders/search', authMiddleware, mongoPractice.searchOrders);
 // Get order detail
 app.get('/order/:orderId', authMiddleware, mongoPractice.getOrderDetail);
 
-// Test auth
-app.get('/testAuth', authMiddleware, async function(req, res, next) {
-    res.json({
-        message: "OK"
-    })
-});
+// Update recently products
+app.post('/recentlyProducts', mongoPractice.addRecentlyProduct);
+
+// Get recently products
+app.get('/recentlyProducts', mongoPractice.getRecentlyProducts);
+
 
 // app.use((req, res, next) => {
 //     const error = new Error('Not found');
