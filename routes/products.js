@@ -1,14 +1,11 @@
-const express = require('express');
-const router = express.Router();
-const mongoPractice = require('../mongoose');
+const router = require('express').Router();
+const productsController = require('../app/controllers/ProductsController');
 
-// Get all
-router.get('/featuredProducts', mongoPractice.getFeaturedProducts);
-
-// Get product detail
-router.get('/:productId', mongoPractice.getProductDetail);
-
-// Get products by category, brand, filter...
-app.get('/', mongoPractice.getProducts);
+// router.get('/featuredProducts', productsController.getFeaturedProducts);
+router.get('/search', productsController.searchProduct);
+router.get('/brand_list', productsController.getBrandList);
+router.get('/:productId', productsController.getProductDetail);
+router.get('/compare', productsController.compareProduct);
+router.get('/', productsController.getProducts);
 
 module.exports = router;

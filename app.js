@@ -1,25 +1,31 @@
 const express = require('express');
-const cors = require('cors')
-const app = express();
+const cors = require('cors');
 const cookieParser = require("cookie-parser");
-const csrf = require('csurf');
+// const csrf = require('csurf');
 const mongoPractice = require('./mongoose');
 const bodyParser = require('body-parser');
-const authMiddleware  = require('./middleware/auth');
+const authMiddleware = require('./middleware/auth');
 const admin = require('./config/firebase-config');
+const app = express();
 
-const csrfMiddleware = csrf({ cookie: true });
-require('dotenv').config();
+const route = require('./routes');
+
 
 // const productsRoute = require('./routes/products');
+// const reviewsRoute = require('./routes/reviews');
+// const usersRoute = require('./routes/users');
 
-// app.use(express.json());
+// Connect to db
+// const db = require('./config/db');
+// db.connect();
 
-// parse application/x-www-form-urlencoded
+
+// const csrfMiddleware = csrf({ cookie: true });
+require('dotenv').config();
+
+app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
-
-// parse application/json
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(cors());
 app.use(cookieParser());
 
@@ -28,96 +34,73 @@ app.use(cookieParser());
 // app.use(middleware.decodeToken);
 
 // app.use((req, res, next) => {
-    // res.header('Access-Control-Allow-Origin', '*');
-    // res.header(
-    //     'Access-Control-Allow-Headers',
-    //     'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-    // );
-    // if (req.method === 'OPTIONS') {
-    //     res.header(
-    //         'Access-Control-Allow-Methods',
-    //         'PUT, POST, PATCH, DELETE, GET'
-    //     );
-    //     return res.status(200).json({});
-    // }
-    // next();
+// res.header('Access-Control-Allow-Origin', '*');
+// res.header(
+//     'Access-Control-Allow-Headers',
+//     'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+// );
+// if (req.method === 'OPTIONS') {
+//     res.header(
+//         'Access-Control-Allow-Methods',
+//         'PUT, POST, PATCH, DELETE, GET'
+//     );
+//     return res.status(200).json({});
+// }
+// next();
 
-    // // Website you wish to allow to connect
-    // res.setHeader('Access-Control-Allow-Origin', '*');
+// // Website you wish to allow to connect
+// res.setHeader('Access-Control-Allow-Origin', '*');
 
-    // // Request methods you wish to allow
-    // res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+// // Request methods you wish to allow
+// res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
 
-    // // Request headers you wish to allow
-    // res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+// // Request headers you wish to allow
+// res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
 
-    // // Set to true if you need the website to include cookies in the requests sent to the API (e.g. in case you use sessions)
-    // res.setHeader('Access-Control-Allow-Credentials', true);
+// // Set to true if you need the website to include cookies in the requests sent to the API (e.g. in case you use sessions)
+// res.setHeader('Access-Control-Allow-Credentials', true);
 
-    // // Pass to next layer of middleware
-    // next();
+// // Pass to next layer of middleware
+// next();
 // });
 
 
-// app.use('/products', productsRoute);
+// function attachCsrfToken(url, cookie, value) {
+// 	return function (req, res, next) {
+// 		if (req.url == url) {
+// 			res.cookie(cookie, value);
+// 		}
+// 		next();
+// 	};
+// }
 
-
-function attachCsrfToken(url, cookie, value) {
-	return function (req, res, next) {
-		if (req.url == url) {
-			res.cookie(cookie, value);
-		}
-		next();
-	};
-}
+// Routes
+route(app);
+// app.use('/api/v1/products', productsRoute);
+// app.use('/api/v1/reviews', reviewsRoute);
+// app.use('/api/v1/me', usersRoute);
 
 // Login
 app.post('/sessionLogin', async function(req, res, next) {
     const token = req.body.token.toString();
-    const expiresIn = 60*60*24*1000; //24h in milliseconds
+    const expiresIn = 60 * 60 * 24 * 1000; //24h in milliseconds
 
     admin.auth().createSessionCookie(token, { expiresIn })
-		.then((sessionCookie) => {
-				const options = { maxAge: expiresIn, httpOnly: true };
-				res.cookie('session', sessionCookie, options);
-				res.end(JSON.stringify({ status: 'success' }));
-			},
-			(error) => {
-				res.status(401).send('Unauthorized request!');
-			}
-		);
-}); 
-
-app.get('/sessionLogout', (req, res) => {
-	res.clearCookie('session');
+        .then((sessionCookie) => {
+                const options = { maxAge: expiresIn, httpOnly: true };
+                res.cookie('session', sessionCookie, options);
+                res.end(JSON.stringify({ status: 'success' }));
+            },
+            (error) => {
+                res.status(401).send('Unauthorized request!');
+            }
+        );
 });
 
-// Get all products
-app.get('/getProducts', mongoPractice.getFeaturedProducts);
-
-// Get product detail
-app.get('/product/:productId', mongoPractice.getProductDetail);
-
-// Get products by category, brand, filter...
-app.get('/products', mongoPractice.getProducts);
-
-// Search product
-app.get('/productSearch', mongoPractice.searchProduct);
-
-// Compare product
-app.get('/compare', mongoPractice.compareProduct);
-
-// Get brand list
-app.get('/getBrandList', mongoPractice.getBrandList);
-
-// Get product's review
-app.get('/product/:productId/reviews', mongoPractice.getReviews);
-
-// Get user's review
-app.get('/:userId/reviews', mongoPractice.getReviewsByUser);
-
-// Post review
-app.post('/submitReview/:productId', mongoPractice.submitReview);
+// Logout
+app.get('/sessionLogout', (req, res) => {
+    res.clearCookie('session');
+});
 
 // Get user data
 app.get('/getUserData/:userId', mongoPractice.getUserData);
@@ -139,33 +122,13 @@ app.get('/districts/:id', mongoPractice.getDistricts);
 // Get wards
 app.get('/wards', mongoPractice.getWards);
 
-// Post order
-app.post('/submitOrder', mongoPractice.submitOrder);
-
-// Get user's orders
-// app.get('/orders', middleware.decodeToken, mongoPractice.getOrders);
-app.get('/orders', authMiddleware, mongoPractice.getOrders);
-
-// Search orders
-app.get('/orders/search', authMiddleware, mongoPractice.searchOrders);
-
-// Get order detail
-app.get('/order/:orderId', authMiddleware, mongoPractice.getOrderDetail);
-
-// Update recently products
-app.post('/recentlyProducts', mongoPractice.addRecentlyProduct);
-
-// Get recently products
-app.get('/recentlyProducts', mongoPractice.getRecentlyProducts);
-
-
 // app.use((req, res, next) => {
 //     const error = new Error('Not found');
 //     error.status = 404;
 //     next(error);
 // });
 
-app.use(function (req, res, next) {
+app.use(function(req, res, next) {
 
     // Website you wish to allow to connect
     res.setHeader('Access-Control-Allow-Origin', '*');

@@ -257,18 +257,47 @@ const getReviews = async(req, res, next) => {
 
     const reviewsResult = await Review.aggregate(query).exec();
 
-    res.json({
-        count: listReview.length,
-        averagePoint: parseFloat(totalStar/listReview.length).toFixed(1),
-        pointPercent: [
-            parseFloat(amount5Point/listReview.length * 100).toFixed(0),
-            parseFloat(amount4Point/listReview.length * 100).toFixed(0),
-            parseFloat(amount3Point/listReview.length * 100).toFixed(0),
-            parseFloat(amount2Point/listReview.length * 100).toFixed(0),
-            parseFloat(amount1Point/listReview.length * 100).toFixed(0)
-        ],
-        reviews: reviewsResult
-    });
+    if (listReview.length) {
+        res.json({
+            reviews_count: listReview.length,
+            rating_average: parseFloat(totalStar/listReview.length).toFixed(1),
+            stars: {
+                1: {
+                    count: amount1Point,
+                    percent: parseFloat(amount1Point/listReview.length * 100).toFixed(0)
+                },
+                2: {
+                    count: amount2Point,
+                    percent: parseFloat(amount2Point/listReview.length * 100).toFixed(0)
+                },
+                3: {
+                    count: amount3Point,
+                    percent: parseFloat(amount3Point/listReview.length * 100).toFixed(0)
+                },
+                4: {
+                    count: amount4Point,
+                    percent: parseFloat(amount4Point/listReview.length * 100).toFixed(0)
+                },
+                51: {
+                    count: amount5Point,
+                    percent: parseFloat(amount5Point/listReview.length * 100).toFixed(0)
+                },
+            },
+            pointPercent: [
+                parseFloat(amount5Point/listReview.length * 100).toFixed(0),
+                parseFloat(amount4Point/listReview.length * 100).toFixed(0),
+                parseFloat(amount3Point/listReview.length * 100).toFixed(0),
+                parseFloat(amount2Point/listReview.length * 100).toFixed(0),
+                parseFloat(amount1Point/listReview.length * 100).toFixed(0)
+            ],
+            reviews: reviewsResult
+        });
+    } else {
+        res.json({
+            count: 0,
+            reviews: []
+        })
+    }
 };
 
 const getReviewsByUser = async(req, res, next) => {
@@ -495,9 +524,38 @@ const updateUserData = async(req, res, next) => {
     }
 
     // Recently viewed products
-    if (data.recentlyProduct) {
-        pipeline['$push'] = {
-            recentlyViewedProducts: data.recentlyProduct
+    const currentProduct = data.recentlyProduct;
+    if (currentProduct) {
+        const currentUser = await User.findOne({ uuid: userId }).exec();
+        let recentlyProducts = currentUser.recentlyViewedProducts;
+        const existingProductId = recentlyProducts?.findIndex(item => {
+            return item._id === currentProduct._id;
+        });
+
+        if (existingProductId < 0) {
+            // If length < 10 add to the beginning if not remove the last and and to the beginning
+            if (recentlyProducts.length < 10) {
+                recentlyProducts.unshift(currentProduct);
+            } else {
+                recentlyProducts.splice(-1);
+                recentlyProducts.unshift(currentProduct);
+            }
+        } else {
+            // If length = 1 and product existed do nothing else move to the beginning (remove and add to the beginning)
+            if (recentlyProducts.length !== 1) {
+                recentlyProducts.splice(existingProductId, 1);
+                recentlyProducts.unshift(currentProduct);
+            }
+            // if (recentlyProducts.length === 1) {
+            //     return;
+            // } else {
+            //     recentlyProducts.splice(existingProductId, 1);
+            //     recentlyProducts.unshift(product);
+            // }
+        }
+
+        pipeline['$set'] = {
+            recentlyViewedProducts: recentlyProducts
         }
     }
 
@@ -687,7 +745,7 @@ const addToWishlist = async(req, res, next) => {
             });
         })
         .catch(function(err) {
-            console.log(err);
+            // console.log(err);
             return res.json({
                 error: {
                     message: 'Error',
@@ -854,17 +912,18 @@ const getOrders = async(req, res, next) => {
         } else {
             res.json({
                 error: {
-                    message: 'User doesn not exist'
+                    message: 'User does not exist'
                 }
             });
         }
-    } else {
-        res.json({
-            error: {
-                message: 'Authorized failed'
-            }
-        });
-    }
+    } 
+    // else {
+    //     res.json({
+    //         error: {
+    //             message: 'Authorized failed'
+    //         }
+    //     });
+    // }
 };
 
 const searchOrders = async(req, res, next) => {
@@ -1007,44 +1066,6 @@ const getOrderDetail = async(req, res, next) => {
     }
 };
 
-const getRecentlyProducts = async(req, res, next) =>{
-
-};
-
-const addRecentlyProduct = async(req, res, next) =>{
-    const userId = req.body?.id;
-    // console.log(111, req.user);
-    const userExisted = await User.findOne({uuid: userId}).exec();
-
-    if (userExisted) {
-        if (req.body?.product) {
-            if (userRecentlyExisted) {
-                res.json('OK');
-            } else {
-                res.json('Error');
-            }
-
-			// const data = {
-			// 	userId,
-			// 	products: [req.body.product],
-			// };
-			// recentlyProducts.create(data)
-            //     .then(async function () {
-            //         return res.json({
-            //             message: true,
-            //         });
-            //     })
-            //     .catch(function (err) {
-            //         return res.json(err);
-            //     });
-		} else {
-			return res.status(404).json('Data can not be empty');
-		}
-    } else {
-        return res.status(404).json('User is not exist');
-    }
-};
-
 exports.getFeaturedProducts = getFeaturedProducts;
 exports.getProducts = getProducts;
 exports.getProductDetail = getProductDetail;
@@ -1066,9 +1087,6 @@ exports.submitOrder = submitOrder;
 exports.getOrders = getOrders;
 exports.searchOrders = searchOrders;
 exports.getOrderDetail = getOrderDetail;
-
-exports.addRecentlyProduct = addRecentlyProduct;
-exports.getRecentlyProducts = getRecentlyProducts;
 
 // const data = await User.aggregate([
 //     { $match: { 'uuid': userId } },
