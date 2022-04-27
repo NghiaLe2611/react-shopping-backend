@@ -52,10 +52,25 @@ class OrdersController {
         // else {
         //     res.json({
         //         error: {
-        //             message: 'Authorized failed'
+        //             message: 'You are not authorized'
         //         }
         //     });
         // }
+    }
+
+    // Get order (tracking)
+    async trackingOrder(req, res, next) {
+        const orderId = req.params.orderId;
+        if (ObjectId.isValid(orderId)) {
+			const data = await Order.findById(orderId).exec();
+			res.json({
+                result: data
+            });
+		} else {
+			res.json({
+                result: null
+            });
+		}
     }
 
     // Get order detail

@@ -4,11 +4,11 @@ const cookieParser = require("cookie-parser");
 const csrf = require('csurf');
 const mongoPractice = require('./mongoose');
 const bodyParser = require('body-parser');
-// const authMiddleware = require('./middleware/auth');
 const admin = require('./config/firebase-config');
 const app = express();
 
 const route = require('./routes');
+const authMiddleware = require('./middleware/auth');
 
 // const productsRoute = require('./routes/products');
 // const reviewsRoute = require('./routes/reviews');
@@ -80,21 +80,32 @@ function attachCsrfToken(url, cookie, value) {
 
 // Attach CSRF token on each request.
 // app.use(attachCsrfToken('/', 'csrfToken', (Math.random()* 10000000).toString()));
+// app.use(attachCsrfToken('/sessionLogin', 'csrfToken', (Math.random()* 100000000000000000).toString()));
 
-// app.all('*', (req, res, next) => {
-// 	res.cookie('csrfToken', (Math.random() * 10000000).toString());
-// 	next();
+// app.get('/test', function(req, res) {
+//     console.log(req.cookies);
+// 	return res.json({ csrfToken: req.cookies.csrfToken });
 // });
 
-// app.all('*', (req, res, next) => {
-// 	const csrfToken = (Math.random()* 10000000).toString();
-// 	res.cookie('csrfToken', csrfToken);
-// 	next();
+// app.all('*', function(req, res, next) {
+//     console.log(111,req.cookies.session);
+//     next();
 // });
 
-app.get('/test', function(req, res) {
-	return res.json({ csrfToken: 'abc' });
+
+// app.post('/auth', csrfMiddleware, function(req, res) {
+//     console.log(req.cookies);
+// 	return res.json({
+//         data: req.body.data
+//     });
+// });
+
+app.post('/auth', authMiddleware.authorizeUser, function(req, res) {
+	return res.json({
+        data: req.body.data
+    });
 });
+
 
 // Routes
 route(app);
@@ -103,44 +114,43 @@ route(app);
 // app.use('/api/v1/me', usersRoute);
 
 
-
 // Login
 app.post('/sessionLogin', async function(req, res, next) {
-	const idToken = req.body.idToken.toString();
+	const idToken = req.body.idToken;
 	const expiresIn = 60 * 60 * 24 * 1000; //24h in milliseconds
 
-	// console.log(req.cookies);
+    // const csrfToken = req.body.csrfToken ? req.body.csrfToken.toString() : '';
 
-	//If cookies.csrfToken not found, it will set as -1 otherwise it gets the value from cookie
-	// const csrfToken = !req.cookies.csrfToken ? -1 : req.body.csrfToken.toString();
+    // console.log(csrfToken);
+    // console.log(req.cookies);
 
-	// Guard against CSRF attacks.
-	// if (!req.cookies || csrfToken !== req.cookies.csrfToken) {
-	// 	console.log(`In ${req.path}, csrfToken=${csrfToken}, req.cookies.csrfToken=${req.cookies.csrfToken}`);
-	// }
-
-	//req.headers.csrfToken
-	// const csrfToken = req.body.csrfToken.toString();
-	// console.log('body', req.body);
-
-	// admin.auth().verifySessionCookie(idToken, true).then(function(decodedClaims) { // true: checkRevoked
-	//     console.log('verifySessionCookie', decodedClaims);
-	// }).catch(function(error) {
-	//     console.log(error);
-	// });
+    // Guard against CSRF attacks.
+    // if (!req.cookies || csrfToken !== req.cookies.csrfToken) {
+    //     console.log('NOT OK');
+    //     return res.status(401).json({
+    //         message: 'Unauthorized request'
+    //     });
+    // }
 
 	admin.auth()
-		.createSessionCookie(idToken, {expiresIn})
+		.createSessionCookie(idToken.toString(), {expiresIn})
 		.then((sessionCookie) => {
-			const options = {maxAge: expiresIn, httpOnly: true};
-			res.cookie('__session', sessionCookie, options);
+			const options = {
+                maxAge: expiresIn,
+                httpOnly: false,
+                secure: false,
+                path: '/',
+                sameSite: 'strict'
+            };
+			res.cookie('session', sessionCookie, options);
+            res.cookie('csrfToken', authMiddleware.generateCsrfToken(sessionCookie), options);
 			return res.status(200).json({status: 'success'});
 			// res.end(JSON.stringify({ status: 'success' }));
 		},
-		(error) => {
+		(err) => {
 			return res.status(401).json({
-				error: error,
-				message: 'Unauthorized'
+				error: err,
+				message: 'Unauthorized request'
 			});
 		}
 	);
@@ -149,22 +159,38 @@ app.post('/sessionLogin', async function(req, res, next) {
 
 // Logout
 app.post('/sessionLogout', async function (req, res) {
-	// const sessionCookie = req.cookies.__session;
-	// let user = await admin.auth().verifySessionCookie(sessionCookie, true /** checkRevoked */);
-	res.clearCookie('csrfToken');
-	res.clearCookie('__session');
+	const sessionCookie = req.cookies.session || '';
+
+    // console.log('log out', sessionCookie);
+
+    res.clearCookie('session');
+    res.clearCookie('csrfToken');
+	res.clearCookie('idToken');
+
+    if (sessionCookie) {
+		admin.auth()
+			.verifySessionCookie(sessionCookie, true)
+			.then(function (decodedClaims) {
+                // console.log('decodedClaims', decodedClaims);
+				return admin.auth().revokeRefreshTokens(decodedClaims.sub);
+			})
+			.then(() => {
+                return res.status(200).json({
+                    success: true
+                });
+			})
+			.catch((err) => {
+                return res.status(401).json({
+                    error: err,
+                    message: 'Unauthorized'
+                });
+			});
+	} else {
+		return res.status(401).json({
+            message: 'Unauthorized 111'
+        });
+	}
 });
-
-// Get user data
-app.get('/getUserData/:userId', mongoPractice.getUserData);
-
-// Set user data
-app.post('/submitUserData', mongoPractice.submitUserData);
-
-// Update user data
-app.put('/updateUserData/:userId', mongoPractice.updateUserData);
-app.put('/updateUserAddress/:userId/:addressId', mongoPractice.updateUserAddress);
-app.put('/addToWishlist/:userId/:productId', mongoPractice.addToWishlist);
 
 // Get province
 app.get('/cities', mongoPractice.getCities);

@@ -1,4 +1,5 @@
 const firebase = require('../config/firebase-config');
+const jwt = require('jsonwebtoken');
 
 function errorResponse(res) {
     return res.status(401).json({
@@ -8,24 +9,32 @@ function errorResponse(res) {
 }
 
 const authMiddleware = {
-    verifyUser: async (req, res, next) => {
+     // Generate access token
+     generateCsrfToken: (session) => {
+        return jwt.sign({
+            session: session
+        }, 'JWT_CSRF_TOKEN', {
+            expiresIn: '1d'
+        });
+    },
+
+    verifyUserToken: async (req, res, next) => {
         const headerToken = req.headers.authorization;
         if ((!headerToken || headerToken.split(' ')[0] !== 'Bearer') && !(req.cookies && req.cookies.idToken)) {
             // && !(req.cookies && req.cookies._session)
             return errorResponse(res);
         }
-    
-        // const sessionCookie = req.cookies.session || '';
-        console.log(req.cookies);
+
+        // console.log(req.cookies);
 
         let token;
         if (headerToken && headerToken.split(' ')[0] === 'Bearer') {
-            token = headerToken.split(' ')[1];
-        } else if (req.cookies && req.cookies.idToken) {
-            token = req.cookies.idToken ? req.cookies.idToken : '';
-        } else {
-            return errorResponse(res);
-        }
+			token = headerToken.split(' ')[1];
+		} else if (req.cookies && req.cookies.idToken) {
+			token = req.cookies.idToken ? req.cookies.idToken : '';
+		} else {
+			return errorResponse(res);
+		}
         
         try {
             const decodedIdToken = await firebase.auth().verifyIdToken(token);
@@ -40,8 +49,42 @@ const authMiddleware = {
         // 	.then(() => next())
         // 	.catch(() => res.send({message: 'Could not authorize'}).status(403));
     },
-    generateCsrfToken: async(req, res, next) => {
-        
+
+    authorizeUser: async(req, res, next) => {
+        const sessionCookie = req.cookies.session || '';
+        const csrfToken = req.body.csrfToken;
+
+        if (sessionCookie) {
+            firebase.auth()
+        		.verifySessionCookie(req.cookies.session, true)
+        		.then(function (decodedClaims) {
+                    if (decodedClaims) {
+                        // Guard against CSRF attacks.
+                        if (csrfToken?.toString() !== req.cookies.csrfToken) {
+                            console.log('NOT OK');
+                            return res.status(401).json({
+                                message: 'Unauthorized request. Token is not valid'
+                            });
+                        } else {
+                            next();
+                        }
+                    } else {
+                        return res.status(401).json({
+                            message: 'Unauthorized request. Session is expired.'
+                        });
+                    }
+        		})
+        		.catch((err) => {
+                    return res.status(401).json({
+                        error: err,
+                        message: 'Unauthorized request'
+                    });
+        		});
+        } else {
+            return res.status(401).json({
+				message: 'Unauthorized request. Session is expired.'
+			});
+        }
     }
 }
 

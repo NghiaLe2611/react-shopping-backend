@@ -389,7 +389,6 @@ const submitReview = async(req, res, next) => {
 };
 
 const getUserData = async(req, res, next) => {
-    const userId = req.params.userId;
     // const data = await User.findOne({ uuid: userId }).exec();
     // res.json(data);
 
@@ -409,39 +408,48 @@ const getUserData = async(req, res, next) => {
     //     },
     //     { $sort: { createdAt: -1 } },
     // ]).exec();
-
-    const data = await User.aggregate([
-		{ $match: { uuid: userId } },
-		{ $unwind: '$listAddress' },
-		{
-			$sort: { 'listAddress.default': -1 }
-		},
-        // { $set: { reviews: reviews } },
-		{
-			$group: {
-				_id: '$_id',
-				detail: { $first: '$$ROOT' },
-				listAddress: { $push: '$listAddress' }
-			},
-		},
-		{
-			$replaceRoot: {
-				newRoot: {
-					$mergeObjects: [
-						'$detail', { listAddress: '$listAddress' }
-					],
-				},
-			},
-		},
-	]).exec();
-
-    if (data) {
-        res.json(data[0]);
+    
+    if (req.user) {
+        const userId = req.user.uid;
+        const data = await User.aggregate([
+            { $match: { uuid: userId } },
+            { $unwind: '$listAddress' },
+            {
+                $sort: { 'listAddress.default': -1 }
+            },
+            // { $set: { reviews: reviews } },
+            {
+                $group: {
+                    _id: '$_id',
+                    detail: { $first: '$$ROOT' },
+                    listAddress: { $push: '$listAddress' }
+                },
+            },
+            {
+                $replaceRoot: {
+                    newRoot: {
+                        $mergeObjects: [
+                            '$detail', { listAddress: '$listAddress' }
+                        ],
+                    },
+                },
+            },
+        ]).exec();
+    
+        if (data) {
+            res.json(data[0]);
+        } else {
+            res.json({
+                error: {
+                    message: 'Error',
+                },
+            });
+        }
     } else {
         res.json({
             error: {
-                message: 'Error',
-            },
+                message: 'You are not authorized'
+            }
         });
     }
 };
@@ -702,62 +710,64 @@ const updateUserAddress = async(req, res, next) => {
 };
 
 const addToWishlist = async(req, res, next) => {
-    const userId = req.params.userId;
-    const productId = req.params.productId;
-    const product = await Product.findById(productId).exec();
-
-    const listReview = await Review.aggregate([{ $match: { productId: productId } }, { $unwind: '$reviews' }]).exec();
-    const totalStar = listReview.reduce((n, {reviews}) => n + reviews.star, 0);
-
-    let pipeline = {};
-    const type = req.body.type;
-    if (product) {
-        if (type === 1) {
-            pipeline['$push'] = {
-                favorite: {
-                   _id: productId,
-                   name: product.name,
-                   category: product.category,
-                   price: product.price,
-                   sale: product.sale,
-                   img: product.img,
-                   totalReviews: listReview.length,
-                   averagePoint: Number(parseFloat(totalStar/listReview.length).toFixed(1))
-                },
-            };
-        } else if (type === 0) {
-            pipeline['$pull'] = {
-                // favorite: { _id: mongoose.Types.ObjectId(productId) }
-                favorite: { _id: productId }
-            };
+    if (req.user) {
+        const userId = req.user.uid;
+        const productId = req.params.productId;
+        const product = await Product.findById(productId).exec();
+    
+        const listReview = await Review.aggregate([{ $match: { productId: productId } }, { $unwind: '$reviews' }]).exec();
+        const totalStar = listReview.reduce((n, {reviews}) => n + reviews.star, 0);
+    
+        let pipeline = {};
+        const type = req.body.type;
+        if (product) {
+            if (type === 1) {
+                pipeline['$push'] = {
+                    favorite: {
+                       _id: productId,
+                       name: product.name,
+                       category: product.category,
+                       price: product.price,
+                       sale: product.sale,
+                       img: product.img,
+                       totalReviews: listReview.length,
+                       averagePoint: Number(parseFloat(totalStar/listReview.length).toFixed(1))
+                    },
+                };
+            } else if (type === 0) {
+                pipeline['$pull'] = {
+                    // favorite: { _id: mongoose.Types.ObjectId(productId) }
+                    favorite: { _id: productId }
+                };
+            }
         }
-    }
-
-    if (Object.keys(pipeline).length) {
-        const query = User.updateOne({ uuid: userId }, pipeline);
-        // { upsert: type === 1 ? true : false }
-        query.then(async function() {
-            const userData = await User.findOne({ uuid: userId }).exec();
-
-            return res.json({
-                message: true,
-                favorite: userData.favorite
+    
+        if (Object.keys(pipeline).length) {
+            const query = User.updateOne({ uuid: userId }, pipeline);
+            // { upsert: type === 1 ? true : false }
+            query.then(async function() {
+                const userData = await User.findOne({ uuid: userId }).exec();
+    
+                return res.json({
+                    message: true,
+                    favorite: userData.favorite
+                });
+            })
+            .catch(function(err) {
+                // console.log(err);
+                return res.json({
+                    error: {
+                        message: 'Error',
+                    },
+                });
             });
-        })
-        .catch(function(err) {
-            // console.log(err);
-            return res.json({
+        } else {
+            res.json({
                 error: {
                     message: 'Error',
                 },
             });
-        });
-    } else {
-        res.json({
-            error: {
-                message: 'Error',
-            },
-        });
+        }
     }
 };
 
