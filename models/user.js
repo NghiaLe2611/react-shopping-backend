@@ -1,8 +1,5 @@
 const mongoose = require('mongoose');
 
-// const Review = require('./review');
-// const Product = require('./product');
-
 const userSchema = mongoose.Schema(
     {
 		_id: {
@@ -17,7 +14,7 @@ const userSchema = mongoose.Schema(
 		birthday: Date,
 		photoURL: String,
 		emailVerified: Boolean,
-		listAddress: [{
+		addresses: [{
 			name: String,
 			phone: String,
 			city: Object,
@@ -26,13 +23,12 @@ const userSchema = mongoose.Schema(
 			address: String,
 			default: Boolean
 		}],
-		favorite: [],
-        recentlyViewedProducts: [{
-            type: Object,
+        recently_viewed_products: [{
+            type: mongoose.Schema.Types.ObjectId,
             ref: 'Product'
-        }]
-		// reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }]
-		// reviews: [Review]
+        }],
+        intended_cart: [],
+        // favorite: [],
 	},
 	{ collection: 'users', versionKey: false }
 );

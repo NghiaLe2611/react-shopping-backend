@@ -58,7 +58,7 @@ class ReviewsController {
 		if (listReview.length) {
 			res.json({
 				reviews_count: listReview.length,
-				rating_average: parseFloat(totalStar / listReview.length).toFixed(1),
+				rating_average: Number(parseFloat(totalStar / listReview.length).toFixed(1)),
 				stars: {
 					1: {
 						count: amount1Point,
@@ -76,7 +76,7 @@ class ReviewsController {
 						count: amount4Point,
 						percent: parseFloat((amount4Point / listReview.length) * 100).toFixed(0),
 					},
-					51: {
+					5: {
 						count: amount5Point,
 						percent: parseFloat((amount5Point / listReview.length) * 100).toFixed(0),
 					},

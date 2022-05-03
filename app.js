@@ -9,6 +9,9 @@ const app = express();
 
 const route = require('./routes');
 const authMiddleware = require('./middleware/auth');
+const Favorite = require('./models/favorite');
+const Product = require('./models/product');
+const Review = require('./models/review');
 
 // const productsRoute = require('./routes/products');
 // const reviewsRoute = require('./routes/reviews');
@@ -100,12 +103,77 @@ function attachCsrfToken(url, cookie, value) {
 //     });
 // });
 
-app.post('/auth', authMiddleware.authorizeUser, function(req, res) {
-	return res.json({
-        data: req.body.data
-    });
+app.get('/update_product', async function(req, res) {
+    const products = await Product.find({}).exec();
+    products.forEach(async (item) => {
+        const obj = await Review.findOne({productId: item._id}).exec();
+
+        if (obj) {
+            if (obj.reviews && obj.reviews.length) {
+                const totalStar = obj.reviews.map(item => item.star).reduce((prev, next) => prev + next);
+                Product.updateOne({_id: item._id}, {$set: {'rating_average': Number(parseFloat(totalStar/obj.reviews.length).toFixed(1))}})
+                .then(result => {
+                    res.json(111);
+                }).catch(err => {
+                    return res.json(err);
+                })
+            }
+        }
+    })
 });
 
+app.post('/favorite', async function(req, res) {
+    const productId = req.body.product_id;
+    const product = await Product.findById(productId).exec();
+
+    if (product) {
+        const favoriteItem = await new Favorite(req.body);
+        
+        Favorite.create(favoriteItem)
+            .then(function(result) {
+                return res.json({
+                    success: true
+                });
+            })
+            .catch(function(err) {
+                console.log(err);
+                return res.json({
+                    success: false
+                });
+            });
+    } else {
+        return res.status(404).json({
+            success: false,
+            message: 'Product not found'
+        });
+    }
+   
+});
+
+app.delete('/favorite', async function(req, res) {
+    const productId = req.body.product_id;
+    const uuid = req.body.uuid;
+    const data = await Favorite.findOne({ 
+        uuid: uuid, product_id: productId
+    }).exec();
+    
+    if (data) {
+        Favorite.findOne({ 
+            uuid: uuid, product_id: productId
+        }).deleteOne().then(result => {
+            return res.json({
+                success: true
+            });
+        }).catch(err => {
+            return res.json(err);
+        })
+    } else {
+        return res.status(404).json({
+            success: false,
+            message: 'Product not found'
+        });
+    }
+});
 
 // Routes
 route(app);
@@ -115,22 +183,9 @@ route(app);
 
 
 // Login
-app.post('/sessionLogin', async function(req, res, next) {
+app.post('/sessionLogin', async function(req, res) {
 	const idToken = req.body.idToken;
 	const expiresIn = 60 * 60 * 24 * 1000; //24h in milliseconds
-
-    // const csrfToken = req.body.csrfToken ? req.body.csrfToken.toString() : '';
-
-    // console.log(csrfToken);
-    // console.log(req.cookies);
-
-    // Guard against CSRF attacks.
-    // if (!req.cookies || csrfToken !== req.cookies.csrfToken) {
-    //     console.log('NOT OK');
-    //     return res.status(401).json({
-    //         message: 'Unauthorized request'
-    //     });
-    // }
 
 	admin.auth()
 		.createSessionCookie(idToken.toString(), {expiresIn})
@@ -160,7 +215,6 @@ app.post('/sessionLogin', async function(req, res, next) {
 // Logout
 app.post('/sessionLogout', async function (req, res) {
 	const sessionCookie = req.cookies.session || '';
-
     // console.log('log out', sessionCookie);
 
     res.clearCookie('session');
@@ -187,7 +241,7 @@ app.post('/sessionLogout', async function (req, res) {
 			});
 	} else {
 		return res.status(401).json({
-            message: 'Unauthorized 111'
+            message: 'Unauthorized'
         });
 	}
 });

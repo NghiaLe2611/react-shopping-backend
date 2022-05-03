@@ -14,7 +14,16 @@ const productSchema = mongoose.Schema({
     sale: Number,
     featured: Boolean,
     released: String,
-    description: String
+    description: String,
+    rating_average: {
+        type: Number, default: 0
+    },
+    review_count: {
+        type: Number, default: 0
+    },
+    favorite_count: {
+        type: Number, default: 0
+    }
 }, { collection : 'products', versionKey: false });
 
 module.exports = mongoose.model('Product', productSchema);

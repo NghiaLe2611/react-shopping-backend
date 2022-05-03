@@ -24,9 +24,6 @@ const authMiddleware = {
             // && !(req.cookies && req.cookies._session)
             return errorResponse(res);
         }
-
-        // console.log(req.cookies);
-
         let token;
         if (headerToken && headerToken.split(' ')[0] === 'Bearer') {
 			token = headerToken.split(' ')[1];
@@ -50,9 +47,9 @@ const authMiddleware = {
         // 	.catch(() => res.send({message: 'Could not authorize'}).status(403));
     },
 
-    authorizeUser: async(req, res, next) => {
+    verifyUserSession: async(req, res, next) => {
         const sessionCookie = req.cookies.session || '';
-        const csrfToken = req.body.csrfToken;
+        const csrfToken = req.body.csrfToken || req.cookies.csrfToken;
 
         if (sessionCookie) {
             firebase.auth()
