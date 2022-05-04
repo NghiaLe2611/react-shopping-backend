@@ -24,7 +24,8 @@ app.use(cookieParser());
 // app.use(csrf({ cookie: true }))
 
 const corsConfig = {
-	origin: true,
+	// origin: true,
+    origin: ['http://localhost:3000', process.env.FRONTEND_APP_URL],
 	credentials: true
 };
 
@@ -99,9 +100,9 @@ app.post('/sessionLogin', async function(req, res) {
 			const options = {
                 maxAge: expiresIn,
                 httpOnly: false,
-                secure: process.env.NODE_ENV === 'production' ? true : false,
                 path: '/',
-                sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'none'
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                secure: process.env.NODE_ENV === 'production' ? true : false // must be true if sameSite='none'
             };
 			res.cookie('session', sessionCookie, options);
             res.cookie('csrfToken', authMiddleware.generateCsrfToken(sessionCookie), options);
