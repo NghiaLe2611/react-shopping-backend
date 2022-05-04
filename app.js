@@ -88,6 +88,11 @@ route(app);
 // app.use('/api/v1/reviews', reviewsRoute);
 // app.use('/api/v1/me', usersRoute);
 
+app.get('/', function(req, res) {
+    return res.status(200).json({
+        env: process.env.NODE_ENV === 'production' ? 'production' : 'development'
+    })
+});
 
 // Login
 app.post('/sessionLogin', async function(req, res) {
@@ -186,7 +191,7 @@ app.use(function(req, res, next) {
 });
 
 app.set('trust proxy', 1); // Heroku
-app.use((error, req, res) => {
+app.use((error, req, res, next) => {
 	res.status(error.status || 500);
 	res.json({
 		error: {
