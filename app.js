@@ -279,7 +279,8 @@ app.use(function(req, res, next) {
 	next();
 });
 
-app.use((error, req, res, next) => {
+app.set('trust proxy', 1); // Heroku
+app.use((error, req, res) => {
 	res.status(error.status || 500);
 	res.json({
 		error: {
