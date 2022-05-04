@@ -6,7 +6,7 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "start": "env-cmd -f .env nodemon server.js",
-        "build": "env-cmd -f .env.production"
+        "build": "env-cmd -f .env.production nodemon server.js"
     },
     "author": "nghiale",
     "license": "ISC",

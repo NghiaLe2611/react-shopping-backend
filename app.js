@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
-const csrf = require('csurf');
 const mongoPractice = require('./mongoose');
 const bodyParser = require('body-parser');
 const admin = require('./config/firebase-config');
@@ -9,9 +8,6 @@ const app = express();
 
 const route = require('./routes');
 const authMiddleware = require('./middleware/auth');
-const Favorite = require('./models/favorite');
-const Product = require('./models/product');
-const Review = require('./models/review');
 
 // const productsRoute = require('./routes/products');
 // const reviewsRoute = require('./routes/reviews');
@@ -72,108 +68,18 @@ app.use(express.json());
 // });
 
 
-function attachCsrfToken(url, cookie, value) {
-	return function (req, res, next) {
-		if (req.url === url) {
-			res.cookie(cookie, value);
-		}
-		next();
-	};
-}
+// function attachCsrfToken(url, cookie, value) {
+// 	return function (req, res, next) {
+// 		if (req.url === url) {
+// 			res.cookie(cookie, value);
+// 		}
+// 		next();
+// 	};
+// }
 
 // Attach CSRF token on each request.
 // app.use(attachCsrfToken('/', 'csrfToken', (Math.random()* 10000000).toString()));
 // app.use(attachCsrfToken('/sessionLogin', 'csrfToken', (Math.random()* 100000000000000000).toString()));
-
-// app.get('/test', function(req, res) {
-//     console.log(req.cookies);
-// 	return res.json({ csrfToken: req.cookies.csrfToken });
-// });
-
-// app.all('*', function(req, res, next) {
-//     console.log(111,req.cookies.session);
-//     next();
-// });
-
-
-// app.post('/auth', csrfMiddleware, function(req, res) {
-//     console.log(req.cookies);
-// 	return res.json({
-//         data: req.body.data
-//     });
-// });
-
-app.get('/update_product', async function(req, res) {
-    const products = await Product.find({}).exec();
-    products.forEach(async (item) => {
-        const obj = await Review.findOne({productId: item._id}).exec();
-
-        if (obj) {
-            if (obj.reviews && obj.reviews.length) {
-                const totalStar = obj.reviews.map(item => item.star).reduce((prev, next) => prev + next);
-                Product.updateOne({_id: item._id}, {$set: {'rating_average': Number(parseFloat(totalStar/obj.reviews.length).toFixed(1))}})
-                .then(result => {
-                    res.json(111);
-                }).catch(err => {
-                    return res.json(err);
-                })
-            }
-        }
-    })
-});
-
-app.post('/favorite', async function(req, res) {
-    const productId = req.body.product_id;
-    const product = await Product.findById(productId).exec();
-
-    if (product) {
-        const favoriteItem = await new Favorite(req.body);
-        
-        Favorite.create(favoriteItem)
-            .then(function(result) {
-                return res.json({
-                    success: true
-                });
-            })
-            .catch(function(err) {
-                console.log(err);
-                return res.json({
-                    success: false
-                });
-            });
-    } else {
-        return res.status(404).json({
-            success: false,
-            message: 'Product not found'
-        });
-    }
-   
-});
-
-app.delete('/favorite', async function(req, res) {
-    const productId = req.body.product_id;
-    const uuid = req.body.uuid;
-    const data = await Favorite.findOne({ 
-        uuid: uuid, product_id: productId
-    }).exec();
-    
-    if (data) {
-        Favorite.findOne({ 
-            uuid: uuid, product_id: productId
-        }).deleteOne().then(result => {
-            return res.json({
-                success: true
-            });
-        }).catch(err => {
-            return res.json(err);
-        })
-    } else {
-        return res.status(404).json({
-            success: false,
-            message: 'Product not found'
-        });
-    }
-});
 
 // Routes
 route(app);
@@ -193,14 +99,13 @@ app.post('/sessionLogin', async function(req, res) {
 			const options = {
                 maxAge: expiresIn,
                 httpOnly: false,
-                secure: false,
+                secure: process.env.NODE_ENV === 'production' ? true : false,
                 path: '/',
-                sameSite: 'strict'
+                sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'none'
             };
 			res.cookie('session', sessionCookie, options);
             res.cookie('csrfToken', authMiddleware.generateCsrfToken(sessionCookie), options);
 			return res.status(200).json({status: 'success'});
-			// res.end(JSON.stringify({ status: 'success' }));
 		},
 		(err) => {
 			return res.status(401).json({
