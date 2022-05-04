@@ -24,8 +24,8 @@ app.use(cookieParser());
 // app.use(csrf({ cookie: true }))
 
 const corsConfig = {
-	// origin: true,
-    origin: ['http://localhost:3000', process.env.FRONTEND_APP_URL],
+	origin: true,
+    // origin: ['http://localhost:3000', process.env.FRONTEND_APP_URL],
 	credentials: true
 };
 
