@@ -94,11 +94,10 @@ app.post('/sessionLogout', async function (req, res) {
 	const sessionCookie = req.cookies.session || '';
     // console.log('log out', sessionCookie);
 
-    res.clearCookie('session');
-    res.clearCookie('csrfToken');
-	res.clearCookie('idToken');
-
     if (sessionCookie) {
+        res.clearCookie('session');
+        res.clearCookie('csrfToken');
+        res.clearCookie('idToken');
 		admin.auth()
 			.verifySessionCookie(sessionCookie, true)
 			.then(function (decodedClaims) {
