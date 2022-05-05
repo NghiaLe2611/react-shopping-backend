@@ -60,7 +60,7 @@ const authMiddleware = {
                         if (csrfToken?.toString() !== req.cookies.csrfToken) {
                             console.log('NOT OK');
                             return res.status(401).json({
-                                message: 'Unauthorized request. Token is not valid'
+                                message: 'Unauthorized request. Token is not valid.'
                             });
                         } else {
                             next();

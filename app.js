@@ -71,7 +71,7 @@ app.post('/sessionLogin', async function(req, res) {
                 maxAge: expiresIn,
                 httpOnly: true,
                 path: '/',
-                domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : 'localhost',
+                // domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : 'localhost',
                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                 secure: process.env.NODE_ENV === 'production' ? true : false // must be true if sameSite='none'
             };
@@ -92,8 +92,8 @@ app.post('/sessionLogin', async function(req, res) {
 // Logout
 app.post('/sessionLogout', async function (req, res) {
 	const sessionCookie = req.cookies.session || '';
-    // console.log('log out', sessionCookie);
-
+    const idToken = req.body.idToken || '';
+    
     if (sessionCookie) {
         res.clearCookie('session');
         res.clearCookie('csrfToken');
@@ -105,20 +105,38 @@ app.post('/sessionLogout', async function (req, res) {
 				return admin.auth().revokeRefreshTokens(decodedClaims.sub);
 			})
 			.then(() => {
-                return res.status(200).json({
+                res.status(200).json({
                     success: true
                 });
 			})
 			.catch((err) => {
                 return res.status(401).json({
                     error: err,
-                    message: 'Verify session failed'
+                    message: 'Verify session failed.'
                 });
 			});
 	} else {
-		return res.status(401).json({
-            message: 'Session not found'
-        });
+        if (req.body.idToken) {
+            try {
+                const decodedIdToken = await admin.auth().verifyIdToken(idToken);
+                if (decodedIdToken) {
+                    res.clearCookie('session');
+                    res.clearCookie('csrfToken');
+                    res.clearCookie('idToken');
+                    res.status(200).json({
+                        success: true
+                    });
+                }
+            } catch (error) {
+                return res.status(401).json({
+                    message: error
+                });
+            }
+        } else {
+            return res.status(401).json({
+                message: 'Session is invalid.'
+            });
+        }
 	}
 });
 
