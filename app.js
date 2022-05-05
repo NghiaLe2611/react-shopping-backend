@@ -19,8 +19,8 @@ require('dotenv').config();
 // app.use(csrf({ cookie: true }))
 
 const corsConfig = {
-	// origin: true,
-    origin: ['http://localhost:3000', process.env.FRONTEND_APP_URL],
+	origin: true,
+    // origin: ['http://localhost:3000', process.env.FRONTEND_APP_URL],
 	credentials: true
 };
 
@@ -31,7 +31,6 @@ app.use(cors(corsConfig));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
-
 
 // app.use(middleware.decodeToken);
 
