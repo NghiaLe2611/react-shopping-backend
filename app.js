@@ -9,65 +9,31 @@ const app = express();
 const route = require('./routes');
 const authMiddleware = require('./middleware/auth');
 
-// const productsRoute = require('./routes/products');
-// const reviewsRoute = require('./routes/reviews');
-// const usersRoute = require('./routes/users');
-
 // Connect to db
 // const db = require('./config/db');
 // db.connect();
 
 require('dotenv').config();
 
-app.use(cookieParser());
 // const csrfMiddleware = csrf({ cookie: true });
 // app.use(csrf({ cookie: true }))
 
 const corsConfig = {
-	origin: true,
-    // origin: ['http://localhost:3000', process.env.FRONTEND_APP_URL],
+	// origin: true,
+    origin: ['http://localhost:3000', process.env.FRONTEND_APP_URL],
 	credentials: true
 };
 
+app.set('trust proxy', 1); // Heroku
 app.use(cors(corsConfig));
 // app.use(cors());
+// app.options('*', cors());
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
 
 
 // app.use(middleware.decodeToken);
-
-// app.use((req, res, next) => {
-// res.header('Access-Control-Allow-Origin', '*');
-// res.header(
-//     'Access-Control-Allow-Headers',
-//     'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-// );
-// if (req.method === 'OPTIONS') {
-//     res.header(
-//         'Access-Control-Allow-Methods',
-//         'PUT, POST, PATCH, DELETE, GET'
-//     );
-//     return res.status(200).json({});
-// }
-// next();
-
-// // Website you wish to allow to connect
-// res.setHeader('Access-Control-Allow-Origin', '*');
-
-// // Request methods you wish to allow
-// res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-
-// // Request headers you wish to allow
-// res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
-
-// // Set to true if you need the website to include cookies in the requests sent to the API (e.g. in case you use sessions)
-// res.setHeader('Access-Control-Allow-Credentials', true);
-
-// // Pass to next layer of middleware
-// next();
-// });
-
 
 // function attachCsrfToken(url, cookie, value) {
 // 	return function (req, res, next) {
@@ -104,8 +70,9 @@ app.post('/sessionLogin', async function(req, res) {
 		.then((sessionCookie) => {
 			const options = {
                 maxAge: expiresIn,
-                httpOnly: false,
+                httpOnly: true,
                 path: '/',
+                domain: process.env.NODE_ENV === 'production' ? '.herokuapp.com' : 'localhost',
                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                 secure: process.env.NODE_ENV === 'production' ? true : false // must be true if sameSite='none'
             };
@@ -166,12 +133,6 @@ app.get('/districts/:id', mongoPractice.getDistricts);
 // Get wards
 app.get('/wards', mongoPractice.getWards);
 
-// app.use((req, res, next) => {
-//     const error = new Error('Not found');
-//     error.status = 404;
-//     next(error);
-// });
-
 app.use(function(req, res, next) {
 
 	// Website you wish to allow to connect
@@ -190,10 +151,8 @@ app.use(function(req, res, next) {
 	next();
 });
 
-app.set('trust proxy', 1); // Heroku
 app.use((error, req, res, next) => {
-	res.status(error.status || 500);
-	res.json({
+	res.status(error.status || 500).json({
 		error: {
 			message: error.message,
 		},
