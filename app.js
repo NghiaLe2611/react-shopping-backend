@@ -71,7 +71,7 @@ app.post('/sessionLogin', async function(req, res) {
                 maxAge: expiresIn,
                 httpOnly: true,
                 path: '/',
-                domain: process.env.NODE_ENV === 'production' ? '.herokuapp.com' : 'localhost',
+                domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : 'localhost',
                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                 secure: process.env.NODE_ENV === 'production' ? true : false // must be true if sameSite='none'
             };
@@ -113,12 +113,12 @@ app.post('/sessionLogout', async function (req, res) {
 			.catch((err) => {
                 return res.status(401).json({
                     error: err,
-                    message: 'Unauthorized'
+                    message: 'Verify session failed'
                 });
 			});
 	} else {
 		return res.status(401).json({
-            message: 'Unauthorized'
+            message: 'Session not found'
         });
 	}
 });
