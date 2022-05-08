@@ -47,7 +47,8 @@ const UsersController = {
 				{ $match: { uuid: userId } },
                 { $project : {
                     favorite: 0,
-                    addresses: 0,
+                    intended_cart: 0,
+                    // addresses: 0,
                     recently_viewed_products: 0
                 }}
 

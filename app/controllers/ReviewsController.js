@@ -3,7 +3,7 @@ const Product = require('../../models/product');
 
 class ReviewsController {
 	// Get reviews by product_id
-	async getReviews(req, res, next) {
+	async getReviews(req, res) {
 		const productId = req.query['product_id'];
 		if (!productId) {
 			return res.status(404).json({
@@ -99,7 +99,7 @@ class ReviewsController {
 	}
 
     // Submit review
-    async submitReview(req, res, next) {
+    async submitReview(req, res) {
         const productId = req.params.productId;
         const product = await Product.findById(productId).exec();
 
@@ -125,12 +125,20 @@ class ReviewsController {
                 }, 
                 { upsert: true }
             );
-            query.then(async function(data) {
-                return res.json({
-                    message: true
+
+            Product.findOneAndUpdate(
+                {_id: productId},
+                {$inc: {review_count: 1}}
+            ).then(() => {
+                query.then(async() => {
+                    return res.json({
+                        message: true
+                    });
+                })
+                .catch(function(err) {
+                    return res.json(err);
                 });
-            })
-            .catch(function(err) {
+            }).catch(err => {
                 return res.json(err);
             });
         } else {
