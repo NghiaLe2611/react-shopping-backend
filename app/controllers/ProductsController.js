@@ -188,14 +188,8 @@ class ProductsController {
 		}
 	}
 
-	// Compare products
-	compareProduct(req, res, next) {
-		const queryListId = req.query.id;
-		res.json(queryListId);
-	}
-
 	// Get brand list
-	async getBrandList(req, res, next) {
+	async getBrandList(req, res) {
 		const category = req.query.category;
 		const brand = await Product.find({category: category}).distinct('brand');
 		res.json(brand);

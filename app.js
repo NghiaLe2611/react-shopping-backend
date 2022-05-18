@@ -149,23 +149,23 @@ app.get('/districts/:id', mongoPractice.getDistricts);
 // Get wards
 app.get('/wards', mongoPractice.getWards);
 
-app.use(function(req, res, next) {
+    // app.use(function(req, res, next) {
 
-	// Website you wish to allow to connect
-	res.setHeader('Access-Control-Allow-Origin', '*');
+    // 	// Website you wish to allow to connect
+    // 	res.setHeader('Access-Control-Allow-Origin', '*');
 
-	res.header(
-		'Access-Control-Allow-Headers',
-		'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-	);
+    // 	res.header(
+    // 		'Access-Control-Allow-Headers',
+    // 		'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+    // 	);
 
-	// Set to true if you need the website to include cookies in the requests sent
-	// to the API (e.g. in case you use sessions)
-	res.setHeader('Access-Control-Allow-Credentials', true);
+    // 	// Set to true if you need the website to include cookies in the requests sent
+    // 	// to the API (e.g. in case you use sessions)
+    // 	res.setHeader('Access-Control-Allow-Credentials', true);
 
-	// Pass to next layer of middleware
-	next();
-});
+    // 	// Pass to next layer of middleware
+    // 	next();
+    // });
 
 app.use((error, req, res, next) => {
 	res.status(error.status || 500).json({
