@@ -35,6 +35,11 @@ class ProductsController {
 
 		let query = {};
 
+		if (brand || price || battery) {
+			query['$and'] = [];
+		}
+
+
 		if (featured === '1') {
 			query['featured'] = true;
 		}
@@ -51,25 +56,34 @@ class ProductsController {
 		if (price) {
 			const priceArr = price.split(',');
 
-			let prices = [];
+			let prices = [], prices2 = [];
 
 			priceArr.forEach((val) => {
 				if (val === 'duoi-2-trieu') {
 					prices.push({price: {$lte: 2000000}});
+					prices2.push({$lte: 2000000});
 				} else if (val === 'tu-2-5-trieu') {
 					prices.push({price: {$gt: 2000000, $lte: 5000000}});
+					prices2.push({$gt: 2000000, $lte: 5000000});
 				} else if (val === 'tu-5-10-trieu') {
 					prices.push({price: {$gt: 5000000, $lte: 10000000}});
+					prices2.push({$gt: 5000000, $lte: 10000000});
 				} else if (val === 'tu-10-20-trieu') {
 					prices.push({price: {$gt: 10000000, $lte: 20000000}});
+					prices2.push({$gt: 10000000, $lte: 20000000});
 				} else if (val === 'tren-20-trieu') {
 					prices.push({price: {$gt: 20000000}});
+					prices2.push({$gt: 20000000});
 				}
 			});
 
 			if (prices.length > 0) {
-				query['$or'] = prices;
+				// query['$or'] = prices;
+				query['$and'].push({'$or': prices})
 			}
+
+			// console.log(prices2);
+
 		}
 
 		if (battery) {
@@ -95,9 +109,12 @@ class ProductsController {
 			});
 
 			if (batteries.length > 0) {
-				query['$or'] = batteries;
+				// query['$or'] = batteries;
+				query['$and'].push({'$or': batteries	})
 			}
 		}
+
+		// console.log(query);
 
 		switch (sort) {
 			case 'priceAscending': {
