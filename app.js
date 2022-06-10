@@ -5,7 +5,7 @@ const mongoPractice = require('./mongoose');
 const bodyParser = require('body-parser');
 const admin = require('./config/firebase-config');
 const app = express();
-
+const https = require('https');
 const route = require('./routes');
 const authMiddleware = require('./middleware/auth');
 
@@ -139,6 +139,50 @@ app.post('/sessionLogout', async function (req, res) {
         }
 	}
 });
+
+async function getStockInformation(date) {
+    let data = '';
+
+    return new Promise((resolve) => {
+        https.get(`https://jsonmock.hackerrank.com/api/stocks?date=${date}`, (res) => {
+            let obj = '';
+            res.on('data', (chunk) => {
+                obj += chunk;
+            });
+
+            res.on('end', () => {
+                // const response = JSON.parse(data).data[0];
+                // const {open, close, low, high} = response;
+                const response = JSON.parse(obj);
+                data = response.data[0];
+                delete data.date;
+                resolve(data);
+                // console.log('Open: ' + open);
+                // console.log('Close: ' + close);
+                // console.log('High: ' + high);
+                // console.log('Low: ' + low);
+            });
+        })
+        .on('error', (err) => {
+            console.log('Error: ' + err.message);
+        });
+    })
+}
+
+app.get('/test', async function(req, res){
+    try {
+        const result = await getStockInformation('5-January-2000');
+        const isEmpty = !Object.keys(result).length;
+        if (isEmpty) {
+            console.log('No Results Found');
+        } else {
+            console.log(11111, result);
+        }
+    } catch(err) {
+        console.log(err);
+    }
+    res.json('OK');
+})
 
 // Get province
 app.get('/cities', mongoPractice.getCities);
