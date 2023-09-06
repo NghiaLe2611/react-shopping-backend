@@ -1,10 +1,12 @@
-const admin = require('firebase-admin');
+require('dotenv').config(); 
 
-const serviceAccount = require('./serviceAccount.json');
+const admin = require('firebase-admin');
+const serviceAccount = require('./serviceAccount');
+// console.log(123, serviceAccount);
 
 admin.initializeApp({
 	credential: admin.credential.cert(serviceAccount),
-	databaseURL: 'https://learn-react-2816d-default-rtdb.firebaseio.com',
+	databaseURL: process.env.FIREBASE_DB_URL,
 });
 
 module.exports = admin;

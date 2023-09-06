@@ -1,16 +1,17 @@
 {
-    "files.associations": {
-        "*.js": "javascript"
-    },
-    "javascript.validate.enable": true,
-    "typescript.validate.enable": false,
-    "prettier.jsxBracketSameLine": true,
+    "editor.fontFamily": "Cousine, 'MonoLisa','SF Mono', 'Courier New', monospace",
     "prettier.jsxSingleQuote": true,
     "prettier.printWidth": 120,
-    "prettier.requireConfig": false,
     "prettier.singleQuote": true,
     "prettier.tabWidth": 4,
     "prettier.useTabs": true,
+    "prettier.bracketSameLine": true,
+    "javascript.validate.enable": true,
+    "files.associations": {
+        "*.js": "javascript"
+    },
+    "typescript.validate.enable": false,
+    "prettier.requireConfig": false,
     "js/ts.implicitProjectConfig.checkJs": false,
     "eslint.enable": true,
     "eslint.validate": [
