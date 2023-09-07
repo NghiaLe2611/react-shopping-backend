@@ -5,6 +5,7 @@
     "main": "index.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
+        "start:fly": "node server.js",
         "start": "env-cmd -f .env nodemon server.js",
         "start-prod": "env-cmd -f .env.production nodemon server.js"
     },
@@ -27,6 +28,7 @@
         "nodemon": "^2.0.15"
     },
     "devDependencies": {
+        "@flydotio/dockerfile": "^0.4.8",
         "eslint": "^8.14.0"
     },
     "engines": {
