@@ -63,7 +63,7 @@ app.get('/', function (req, res) {
 // Login
 app.post('/sessionLogin', async function (req, res) {
 	const idToken = req.body.idToken;
-	const expiresIn = 60 * 60 * 24 * 1000; //24h in milliseconds
+	const expiresIn = 60 * 60 * 1 * 1000; // 1h in milliseconds
 
 	admin
 		.auth()
