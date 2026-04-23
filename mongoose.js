@@ -1,5 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
+mongoose.set("strictQuery", false);  // cho phép query linh hoạt hơn, true: chỉ cho query theo field có trong schema
 const ObjectId = mongoose.Types.ObjectId;
 
 const Product = require('./models/product');
